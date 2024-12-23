@@ -1,0 +1,89 @@
+.custom-select {
+    position: relative;
+    display: flex;
+    /* justify-content: center;
+    align-items: center; */
+    width: 16rem;
+  }
+  
+  .select-button {
+    width: 100%;
+    padding: 10px;
+    background-color: #fff;
+    border: 1px solid #ccc;
+    cursor: pointer;
+    text-align: left;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .funingo-icon-container{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: row;
+    width:5rem;
+    height: 2rem;
+    /* background-color: red; */
+  }
+  
+  .selected-option {
+    display: flex;
+    justify-content: space-between; /* Add this line */
+    align-items: center;
+  }
+  
+  .selected-option img {
+    width: 20px;
+    height: 20px;
+    margin-left: 10px; /* Update margin to left */
+  }
+  
+  .default-option {
+    display: flex;
+    justify-content: space-between; /* Add this line */
+    align-items: center;
+    width: 100%;
+  }
+  
+  .arrow {
+    font-size: 12px;
+    margin-left: 10px;
+  }
+  
+  .select-options {
+    display: none;
+    position: absolute;
+    background-color: #fff;
+    border: 1px solid #ccc;
+    z-index: 1;
+    width: 100%;
+  }
+  
+  .select-button:focus + .select-options,
+  .select-options:hover {
+    display: block;
+  }
+  
+  .option {
+    padding: 10px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between; /* Add this line */
+    align-items: center;
+  }
+  
+  .option img {
+    width: 20px;
+    height: 20px;
+    margin-left: 10px; /* Update margin to left */
+  }
+  
+  .option:hover {
+    background-color: #f1f1f1;
+  }
+  
+  .custom-select .select-options {
+    display: block;
+  }
+  

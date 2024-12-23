@@ -1,0 +1,140 @@
+* {
+  margin: 0;
+  padding: 0;
+}
+
+.events {
+  .top {
+    background: url("./images/events.png") center/cover;
+    // margin-bottom: 0px;
+  }
+
+  .top2 {
+    height: 90vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+   
+    position: relative;
+    padding: 100px 50px;
+    overflow: hidden;
+    // background: url('./images/bg2.png') center/cover;
+
+    .background-event {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        height: 110%;
+        min-width: 100vw;
+        transform: translate(-50%, -50%);
+        z-index: -1;
+        overflow: hidden;
+        
+      //   @media (max-width:900px){
+      //     height: 150rem;
+          
+      //   }
+      }
+
+      
+    .first {
+      margin-right: 80px;
+    }
+    .heading-img{
+      width: 26rem;
+    }
+  
+   
+   
+
+    @media (max-width: 600px) {
+      flex-direction: column;
+      height: 150rem;
+      .main-img {
+        height: 50vh;
+        width: 78vw;
+      }
+      .heading-img {
+        width: 60vw;
+        margin-top: 2px;
+      }
+      .first {
+        margin-right: 0rem;
+      }
+      .second{
+        margin-right: 0px;
+      }
+    }
+
+    @media (max-width: 420px) {
+   
+      .main-img{
+        height: 22vh;
+        width:80vw;
+        margin-bottom: -3px;
+
+      }
+      .heading-img{
+        width: 58vw;
+        margin-top: 23px;
+        margin-left: 16px;
+      }
+    
+    }
+
+    @media (max-width: 1107px) {
+      flex-direction: column;
+      height: 70rem;
+
+      .first {
+        margin-right: 0rem;
+      }
+
+      .content-box h4 {
+        width: 45vw;
+        padding: 0rem;
+      }
+      .second{
+        margin-right: 0px;
+      }
+    }
+
+    .second {
+      .content-box h4 {
+        width: 40vw;
+        padding: 2rem;
+      }
+    }
+
+    @media(max-width:420px){
+      height: 49rem;
+      .second {
+        .content-box h4 {
+          width: 68vw;
+          padding: 0rem;
+          text-align: center;
+          margin-top: 16px;
+          margin-bottom: 13px;
+        }
+      }
+    }
+  }
+
+  .heading {
+    color: #fff;
+    font-family: Luckiest Guy;
+    font-size: 74.619px;
+    font-style: normal;
+    font-weight: 400;
+    line-height: normal;
+    letter-spacing: 7.089px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    @media (max-width: 600px) {
+      font-size: 40px;
+      font-weight: 400;
+    }
+  }
+}

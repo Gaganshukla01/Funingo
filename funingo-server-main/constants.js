@@ -1,0 +1,15 @@
+export default {
+  website_url: "https://funingo.fun",
+  red_flag_price: 100,
+  yellow_flag_price: 0.1,
+  green_flag_price: 30,
+  golden_flag_price: 0.1,
+  premium_50_price_for_6_months: 5000,
+  premium_50_price_for_1_year: 8000,
+  premium_50_price_for_100_years: 20000,
+  premium_100_price_for_6_months: 1500,
+  premium_100_price_for_1_year: 2000,
+  premium_100_price_for_100_years: 2500,
+  percent_of_fm_to_use: 20,
+  coinPrice: 0.1,
+};

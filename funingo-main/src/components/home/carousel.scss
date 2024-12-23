@@ -1,0 +1,109 @@
+.home-gallery {
+  .top2 {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 8rem;
+
+    // height: 39vh;
+    @media (max-width: 900px) {
+      // height: 56vh;
+    }
+    @media (max-width: 600px) {
+      // height: 41vh;
+    }
+    @media (max-width: 400px) {
+      // height: 28vh;
+    }
+
+    .carousel-box {
+      width: 70vw;
+      // height: 26vh;
+      display: flex;
+      flex-wrap: nowrap;
+      align-items: center;
+      flex-direction: column;
+
+      .left-img-car {
+        width: 48%;
+      }
+
+      .heading{
+        font-size: 2.5rem;
+        color: #2474d2;
+      }
+
+      .subheading {
+        text-align: center;
+        color: #0590c2;
+        font-family: Saira;
+        font-size: 36.831px;
+        font-style: normal;
+        font-weight: 700;
+        line-height: 1;
+        margin: 10px auto;
+      }
+      .subheading2 {
+        text-align: center;
+        color: #2c2c2c;
+        font-family: Saira;
+        font-size: 17.831px;
+        font-style: normal;
+        font-weight: 500;
+        line-height: 1;
+        margin: 10px auto;
+      }
+      @media (max-width: 900px) {
+      }
+
+      @media (max-width: 600px) {
+        margin-bottom: 3vh;
+        .subheading {
+          font-size: 24px;
+
+          // margin-top: -4rem;
+        }
+      }
+
+      @media (max-width: 500px) {
+        .subheading {
+          font-size: 20px;
+        }
+      }
+
+      .mob-carousel {
+        display: flex;
+        justify-content: center;
+        width: 100%;
+
+        .carousel {
+          display: flex;
+          justify-content: center;
+        }
+
+        @media (max-width: 500px) {
+          .mob-carousel-img {
+            width: 100%;
+          }
+        }
+      }
+    }
+  }
+
+  .heading {
+    color: #fff;
+    font-family: Luckiest Guy;
+    font-size: 74.619px;
+    font-style: normal;
+    font-weight: 400;
+    line-height: normal;
+    letter-spacing: 7.089px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    @media (max-width: 600px) {
+      font-size: 40px;
+      font-weight: 400;
+    }
+  }
+}

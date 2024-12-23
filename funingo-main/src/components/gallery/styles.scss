@@ -1,0 +1,101 @@
+.gallery {
+  .top {
+    background: url('./images/gallery.png') center/cover;
+  }
+  .top2 {
+    display: flex;
+    justify-content: center;
+    // background-color: brown;
+    height: 84vh;
+    @media (max-width: 900px) {
+      height: 56vh;
+    }
+    @media (max-width: 600px) {
+      height: 41vh;
+    }
+    @media (max-width: 400px) {
+      height: 28vh;
+    }
+
+    .carousel-box {
+      // background-color: aqua;
+      width: 70vw;
+      height: 26vh;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+
+      .left-img-car {
+        width: 48%;
+      }
+
+      .subheading {
+        text-align: center;
+        color: #474747;
+        font-family: Saira;
+        font-size: 34.831px;
+        font-style: normal;
+        font-weight: 500;
+        line-height: normal;
+        margin: 10px auto;
+      }
+      //   @media (max-width: 900px) {
+      // .subheading {
+      //   margin-bottom: -20vh;
+      // }
+      //   }
+
+      @media (max-width: 600px) {
+        margin-bottom: 3vh;
+        .subheading {
+          font-size: 33px;
+          // margin-bottom: -25vh;
+          margin-top: -4rem;
+        }
+      }
+
+      @media (max-width: 500px) {
+        .subheading {
+          font-size: 24px;
+          font-weight: 600;
+          // margin-bottom: -35vh;
+        }
+      }
+
+      .mob-carousel {
+        display: flex;
+        justify-content: center;
+        width: 100%;
+
+        .carousel {
+          display: flex;
+          justify-content: center;
+        }
+
+        @media (max-width: 500px) {
+          .mob-carousel-img {
+            width: 100%;
+          }
+        }
+      }
+    }
+  }
+
+  .heading {
+    color: #fff;
+    font-family: Luckiest Guy;
+    font-size: 74.619px;
+    font-style: normal;
+    font-weight: 400;
+    line-height: normal;
+    letter-spacing: 7.089px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    @media (max-width: 600px) {
+      font-size: 40px;
+      font-weight: 400;
+    }
+  }
+}

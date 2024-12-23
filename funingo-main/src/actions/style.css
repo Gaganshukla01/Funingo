@@ -1,0 +1,72 @@
+.container {
+    display: flex;
+    justify-content: space-around;
+    align-items: normal;
+    padding: 20px;
+  }
+  
+  .column {
+    flex: 1;
+    margin: 10px;
+    padding: 20px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background-color: #f9f9f9;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+  
+  .column h3 {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  
+  .ticket {
+    padding: 10px;
+    margin: 5px 0;
+    background-color: #fff;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    text-align: center;
+  }
+  
+  .total {
+    margin-top: 20px;
+    padding: 10px;
+    background-color: #e0f7fa;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    text-align: center;
+    font-weight: bold;
+  }
+  .admin-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 50px;
+  }
+  
+  .btn-get-details {
+    background-color: #4CAF50; /* Green */
+    border: none;
+    color: white;
+    padding: 15px 32px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    margin: 4px 2px;
+    cursor: pointer;
+    border-radius: 12px;
+    transition: background-color 0.3s ease, transform 0.3s ease;
+  }
+  
+  .btn-get-details:hover {
+    background-color: #45a049;
+    transform: scale(1.05);
+  }
+  
+  .btn-get-details:active {
+    background-color: #3e8e41;
+    transform: scale(0.95);
+  }
+  

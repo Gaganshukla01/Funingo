@@ -1,0 +1,22 @@
+.icon-container {
+  width: 50px !important;
+  height: 50px !important;
+  border-radius: 50%;
+  background-color: #2cc248;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 10px;
+  transition: background-color 0.3s ease-in-out;
+  z-index: 100;
+}
+
+.icon-container:hover {
+  z-index: 100;
+}
+.icon {
+  color: white;
+  width: 30px !important;
+  height: 30px !important;
+  z-index: 100;
+}

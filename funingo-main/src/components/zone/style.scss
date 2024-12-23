@@ -1,0 +1,126 @@
+* {
+  margin: 0;
+  padding: 0;
+}
+
+.homes {
+  .top {
+    background: url('./images/top.png') center/cover;
+  }
+
+  @media (max-width: 380px) {
+    .heading {
+      font-size: 27px;
+    }
+  }
+  .top2 {
+    // background: url('./images/top2.png') center/cover;
+    // height: 150vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+
+    // height: 150vh;
+    // display: flex;
+    // justify-content: center;
+    // align-items: center;
+
+    position: relative;
+    padding: 200px 10px;
+    // overflow: hidden;
+
+    .background-event {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      height: 100%;
+      min-width: 100vw;
+      transform: translate(-50%, -50%);
+      z-index: -1;
+      overflow: hidden;
+
+      @media (max-width: 400px) {
+        min-width: 300vw;
+      }
+    }
+    .sub {
+      color: #fff;
+      font-family: Saira;
+      font-size: 48px;
+      // line-height: 76px;
+      font-weight: 700;
+      text-align: left;
+      letter-spacing: 0.045em;
+
+      @media (max-width: 568px) {
+        margin-top: 50%;
+        
+      }
+      @media (max-width: 420px) {
+        text-align: center;
+      }
+    }
+    .sub1 {
+      color: #2cc248;
+      font-family: Saira;
+      font-size: 48px;
+
+      font-weight: 700;
+      text-align: left;
+      letter-spacing: 0.045em;
+
+      @media (max-width: 450px) {
+    
+        text-align: center;
+      }
+    }
+
+    .sub2 {
+      color: #fff;
+      font-family: Saira;
+      font-weight: 0;
+    }
+    .first {
+      margin-right: 10rem;
+    }
+    @media (max-width: 600px) {
+      flex-direction: column;
+      img {
+        height: 30%;
+        width: 65vw;
+        margin-top: 16%;
+      }
+      .first {
+        margin-right: 0rem;
+      }
+    }
+    @media (max-width: 420px) {
+      padding: 3rem;
+      text-align: center;
+    }
+  }
+
+  .heading {
+    color: #fff;
+    font-family: Luckiest Guy;
+    font-size: 74.619px;
+    font-style: normal;
+    font-weight: 400;
+    line-height: normal;
+    letter-spacing: 7.089px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    @media (max-width: 600px) {
+      font-size: 40px;
+      font-weight: 400;
+    }
+  }
+
+  img {
+    height: 350px;
+    width: 27rem;
+  }
+}

@@ -1,0 +1,373 @@
+@import url("https://fonts.googleapis.com/css2?family=Saira:ital,wght@0,100..900;1,100..900&display=swap");
+
+* {
+  margin: 0;
+  padding: 0;
+}
+
+.blur {
+  filter: blur(5px);
+  pointer-events: none;
+}
+
+.view-activity-button {
+  z-index: 1000;
+  position: relative;
+}
+
+
+.booknow {
+  position: relative;
+  input {
+    background-color: rgb(255, 255, 255);
+    color: black;
+  }
+  .top {
+    background: url("./images/top.png") center/cover;
+    @media (max-width: 600px) {
+      background-position: center;
+      background-size:cover;
+      background-repeat: no-repeat;
+      
+    }
+    @media (max-width: 600px) {
+      .top{
+        padding: 20px;
+        height: 30vh;
+      }
+  
+    }
+  }
+
+  .top2 {
+    background: url("./images/booknowbgimg.png") center/cover;
+    // height: 150vh;
+    // display: flex;
+    // justify-content: center;
+    // align-items: center;
+    // margin-bottom: 0px;
+    .buttonText{
+      font-family: Luckiest Guy;
+      color: #fff;
+    }
+
+    @keyframes slideIn {
+      from {
+        transform: translateX(-100%);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+    
+    @keyframes slideOut {
+      from {
+        transform: translateX(0);
+        opacity: 1;
+      }
+      to {
+        transform: translateX(-100%);
+        opacity: 0;
+      }
+    }
+    
+    .bukFormMobile {
+      display: flex;
+      flex-direction: column;
+      height: 1250px; /* Adjust height as needed */
+      width: 85%;
+      box-shadow: 2px 2px 2px 2px rgba(255, 255, 255, 0.689);
+      border: 1px solid transparent;
+      border-radius: 10px;
+      justify-content: space-between;
+      align-items: center;
+      overflow-y: scroll; /* Add scroll */
+      font-family: "Saira", sans-serif;
+      font-optical-sizing: auto;
+      font-weight: 600;
+      left: 0; /* Ensure it starts from the left */
+      top: auto;
+      margin-top: 50px;
+    }
+    
+    .slide-in {
+      animation: slideIn 0.5s forwards;
+    }
+    
+    .slide-out {
+      animation: slideOut 0.5s forwards;
+    }    
+
+
+    .bukForm {
+      // display: flex;
+      flex-direction: column;
+      height: 1000px; /* Adjust height as needed */
+      width: 30%;
+      box-shadow: 2px 2px 2px 2px rgba(255, 255, 255, 0.689);
+      border: 1px solid transparent;
+      border-radius: 10px;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 50px;
+      margin-bottom: 50px;
+      overflow-y: scroll; /* Add scroll */
+      font-family: "Saira", sans-serif;
+      font-optical-sizing: auto;
+      font-weight: 600;
+    }
+
+    .bukForm::-webkit-scrollbar {
+      width: 16px;
+    }
+
+    .bukForm::-webkit-scrollbar-track {
+      background: #fbffd1;
+      border-radius: 0px 10px 10px 0px;
+      padding: 2px;
+    }
+
+    .bukForm::-webkit-scrollbar-thumb {
+      background: linear-gradient(45deg, #040000, #000000);
+      border-radius: 10px;
+      border: 4px solid transparent; /* Add a transparent border to increase the visual width of the thumb */
+      background-clip: content-box;
+    }
+
+    .bukForm::-webkit-scrollbar-corner {
+      background: transparent;
+    }
+
+    .bg-yellow-200 {
+      background-color: #fff504;
+    }
+
+    .bg-red-200 {
+      background-color: #fffb92;
+    }
+
+    .book-form {
+      display: flex;
+      flex-direction: column;
+      width: 50%;
+      border: 2px solid white;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 50px;
+      margin-bottom: 50px;
+      @media (max-width: 900px) {
+        width: 90%;
+        margin-top: 80px;
+        border: none;
+      }
+
+      .book-now-label {
+        margin-bottom: 5px;
+      }
+
+      .form-heading {
+        display: flex;
+        height: 10%;
+        color: white;
+        font-family: Luckiest Guy;
+        font-size: 50px;
+        font-weight: 600;
+        line-height: 79px;
+        letter-spacing: 0.1em;
+        text-align: center;
+        margin-top: 2%;
+        margin-bottom: 1%;
+        @media (max-width: 900px) {
+          font-size: 40px;
+        }
+      }
+
+      .details {
+        height: 90%;
+        width: 75%;
+        // background-color: rgb(18, 18, 17);
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+        color: white;
+
+        @media (max-width: 900px) {
+          width: 90%;
+        }
+
+        .input-name {
+          width: 55%;
+          display: flex;
+          flex-direction: column;
+          @media (max-width: 900px) {
+            width: 100%;
+            margin-bottom: 12px;
+          }
+        }
+        .input-age-gender {
+          display: flex;
+          justify-content: space-between;
+          gap: 10%;
+          width: 40%;
+          @media (max-width: 900px) {
+            width: 100%;
+          }
+
+          .input-age {
+            width: 35%;
+            display: flex;
+            flex-direction: column;
+          }
+          .input-gender {
+            width: 50%;
+            display: flex;
+            flex-direction: column;
+            z-index: 99;
+          }
+        }
+        .input-email {
+          width: 55%;
+          display: flex;
+          flex-direction: column;
+          @media (max-width: 900px) {
+            width: 100%;
+            margin-bottom: 12px;
+          }
+        }
+        .input-number {
+          width: 40%;
+          display: flex;
+          flex-direction: column;
+          @media (max-width: 900px) {
+            width: 100%;
+          }
+        }
+        .input-package {
+          display: flex;
+          flex-direction: column;
+          width: 100%;
+          z-index: 10;
+        }
+        .input-freebies {
+          display: flex;
+          flex-direction: column;
+          width: 100%;
+        }
+        .input-funingo-coins {
+          display: flex;
+          flex-direction: column;
+          width: 100%;
+          // border:2px solid red;
+        }
+        .input-funingo {
+          height: 2.3rem;
+          border-radius: 5px;
+          // border:2px solid red;
+        }
+
+        .input-weekday {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          margin-top: 1rem;
+          width: 100%;
+          background-color: yellow;
+          height: 2.5rem;
+          border-radius: 5rem;
+        }
+        .weekday-label {
+          color: black;
+          font-weight: 850;
+          font-size: 1rem;
+        }
+        .weekday-input-checkbox {
+          width: 1rem;
+          height: 1rem;
+          margin-right: 0.5rem;
+        }
+        .input-date {
+          width: 55%;
+          display: flex;
+          flex-direction: column;
+          height: 100%;
+          border-radius: 20px;
+
+          @media (max-width: 900px) {
+            width: 100%;
+            margin-bottom: 12px;
+          }
+        }
+        .input-time {
+          width: 40%;
+          display: flex;
+          flex-direction: column;
+          height: 100%;
+          @media (max-width: 900px) {
+            width: 100%;
+          }
+        }
+        .date-inp {
+          height: 36px;
+          border-radius: 4px;
+          padding: 0px 10px;
+          border: 1px solid hsl(0, 0%, 80%);
+        }
+        .time-inp {
+          height: 30px;
+        }
+
+        .pricing-card {
+          width: 100%;
+          min-height: 150px;
+          background-color: beige;
+          display: flex;
+          flex-direction: column;
+          justify-content: space-around;
+          align-items: center;
+          color: black;
+          margin-bottom: 4%;
+        }
+      }
+    }
+  }
+
+  .heading {
+    color: #fff;
+    font-family: Luckiest Guy;
+    font-size: 74.619px;
+    font-style: normal;
+    font-weight: 400;
+    line-height: normal;
+    letter-spacing: 7.089px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    justify-items: center;
+    align-items: center;
+
+    @media (max-width: 600px) {
+      font-size: 25px;
+      font-weight: 700;
+    }
+  }
+}
+
+//circular loader scss
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5); /* Semi-transparent black background */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999; /* Place overlay above other content */
+}
+
+.loading-overlay > .MuiCircularProgress-colorPrimary {
+  color: white; /* Change loader color */
+}
