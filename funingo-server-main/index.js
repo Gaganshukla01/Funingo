@@ -4,10 +4,8 @@ import dotenv from "dotenv";
 import cors from "cors";
 import { SNSClient } from "@aws-sdk/client-sns";
 import { S3Client } from "@aws-sdk/client-s3";
-
 import Razorpay from "razorpay";
 import cron from "node-cron";
-
 import userRouter from "./routes/user.js";
 import otpRouter from "./routes/otp.js";
 import ticketRouter from "./routes/ticket.js";
@@ -92,7 +90,6 @@ app.use("/phone", phoneNoRouter);
 app.use("/franchise", franchiseRouter);
 app.use("/career-application", careerApplicationSchema);
 app.use("/activity", activityRouter);
-
 app.get("/", async (req, res) => {
   res.status(200).send(`Server up and running on ${process.env.NODE_ENV}!`);
 });

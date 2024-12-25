@@ -4,6 +4,8 @@ import { createAsyncThunk } from "@reduxjs/toolkit";
 
 export const windowPurchase = async ({
   total_amount,
+  online_amount,
+  cash_amount,
   details,
   token,
   phone_no,
@@ -19,6 +21,8 @@ export const windowPurchase = async ({
     `${apiUrl}/ticket/e/book-ticket`,
     {
       total_amount,
+      cash_amount,
+      online_amount,
       details,
       phone_no,
       payment_mode,

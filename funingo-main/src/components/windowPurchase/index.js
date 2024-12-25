@@ -33,6 +33,7 @@ import { scrollToTop } from "../../utils";
 import statesData, { localityData } from "../auth/states";
 import ComplimentaryDialog from "./ComplimentaryDialog";
 import moment from "moment";
+import { amber } from "@mui/material/colors";
 
 const WindowPurchase = () => {
   const navigate = useNavigate();
@@ -60,6 +61,8 @@ const WindowPurchase = () => {
   const { token } = useSelector((state) => state.userSlice);
   const [shortId, setShortId] = useState(null);
   const [paymentMode, setPaymentMode] = useState(null);
+  const [cashAmount, setcashAmount] = useState(0);
+  const [onlineAmount, setonlineAmount] = useState(0);
   const [confirmationModalOpen, setConfirmationModalOpen] = useState(false);
   const [dummyFreebiesData, setDummyFreebiesData] = useState([]);
   const [existingFuningoMoney, setExistingFuningoMoney] = useState(0);
@@ -275,6 +278,27 @@ const WindowPurchase = () => {
     return availableOptions;
   };
 
+  // split payment logic
+  const handleCashAmountChange = (e) => {
+    const value = e.target.value || 0 ;
+    setcashAmount(value); 
+    if (value + onlineAmount > totalPrice) {
+      setonlineAmount(totalPrice - value); 
+    } else {
+      setonlineAmount(onlineAmount);
+    }
+  };
+  
+  const handleOnlineAmountChange = (e) => {
+    const value =e.target.value || 0 ;
+    setonlineAmount(value); 
+    if (value + cashAmount > totalPrice) {
+      setcashAmount(totalPrice - value); 
+    } else {
+      setcashAmount(cashAmount); 
+    }
+  };
+
   const handlePackageDataResponse = (data) => {
     setPackageData(
       data.map((item, index) => {
@@ -300,10 +324,13 @@ const WindowPurchase = () => {
           premiumDiscount -
           (couponDiscount.discount || 0) -
           customDiscount,
+        cash_amount:cashAmount,
+        online_amount:onlineAmount,
         details,
         token,
         phone_no: phoneNumber ? "+91-" + phoneNumber : undefined,
         payment_mode: paymentMode.value,
+
         coupon: code,
         dob,
         name,
@@ -313,7 +340,7 @@ const WindowPurchase = () => {
       if (response.success) {
         setShortId(response.short_id);
         callback?.(response.short_id);
-        setConfirmationModalOpen(false);
+        // setConfirmationModalOpen(false);
       }
     } catch (error) {
       // Handle the error here, e.g., display an error message to the user or log the error for troubleshooting
@@ -980,6 +1007,33 @@ const WindowPurchase = () => {
               isClearable={false}
             />
           </Grid>
+  <div style={{
+    display: "flex",
+    justifyContent: "space-between",
+    marginBottom: "10px",
+  }}>
+    <Grid>
+      <Typography>Enter Cash Amount</Typography>
+      <TextField
+        type="number"
+        value={cashAmount} 
+        onChange={handleCashAmountChange } 
+        min={0}
+      />
+    </Grid>
+
+    <Grid>
+      <Typography>Enter Online Amount</Typography>
+      <TextField
+        type="number"
+        value={onlineAmount} 
+        onChange={handleOnlineAmountChange}
+        min={0}
+      />
+    </Grid>
+  </div>
+
+         
           {shortId ? (
             <Box
               sx={{
@@ -997,14 +1051,14 @@ const WindowPurchase = () => {
                   navigate(`/we/get-qr-tickets?tid=${shortId}`);
                   scrollToTop();
                 }}
-              >
+              > 
                 Generate QR Tickets
               </Button>
             </Box>
           ) : (
             <>
               <Button
-                onClick={() => setConfirmationModalOpen(true)}
+               onClick={() => handlePurchase()}
                 variant="contained"
                 fullWidth
                 disabled={!paymentMode || count === 0 || phoneNumber === ""}

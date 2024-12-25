@@ -30,10 +30,15 @@ const ticketSchema = new mongoose.Schema(
       default: null,
     },
     total_amount: Number,
+    cash_amount:Number,
+    online_amount:Number,
     coupon_used: {
       type: String,
       required: false,
     },
+    Cash_amount:Number,
+    
+    
     user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
@@ -52,7 +57,7 @@ const ticketSchema = new mongoose.Schema(
     },
     payment_mode: {
       type: String,
-      enum: ["razorpay", "online", "cash", "card"],
+      enum: ["razorpay", "online", "cash", "card", " Cash Online"],
       default: "razorpay",
     },
     riskConsentImage: {

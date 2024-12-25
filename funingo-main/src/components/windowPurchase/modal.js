@@ -150,7 +150,7 @@ const ConfirmationModal = ({ open, onClose, handlePurchase }) => {
           />
         </Box>
         <Button
-          // onClick={() => handlePurchase()}
+          //  onClick={() => handlePurchase()}
           variant='contained'
           fullWidth
           disabled={!name.length}

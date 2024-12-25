@@ -13,6 +13,8 @@ export const bookTicket = async (req, res) => {
   let {
     details,
     total_amount,
+    cash_amount,
+    online_amount,
     phone_no,
     payment_mode,
     coupon,
@@ -101,6 +103,8 @@ export const bookTicket = async (req, res) => {
   const newTicket = new Ticket({
     fun_date: new Date(),
     total_amount,
+    cash_amount,
+    online_amount,
     expired: false,
     payment_verified: true,
     details: newDetails,
