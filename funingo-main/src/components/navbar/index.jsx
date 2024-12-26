@@ -23,6 +23,7 @@ import Login from "../auth/signup";
 import ZoneHoverComponent from "../hover/first";
 import EventHoverComponent from "../hover/second";
 import CorporateHoverComponent from "../hover/third";
+import DataForms from "../data-entry/entry";
 import Packages from "../package/package";
 import { setLoggedIn, removeUser } from "../../utils/store/slice/userSlice";
 import MoneyBg from "../../assets/money-logo-bg.svg";
@@ -82,10 +83,6 @@ const Navbar = () => {
 
   const openModal = () => dispatch(openAuthModal());
   const closeModal = () => dispatch(closeAuthModal());
-
-  // const handleClose = () => {
-  //   setOpen(false);
-  // };
 
   const [navExpanded, setNavExpanded] = useState(false);
 
@@ -205,6 +202,7 @@ const Navbar = () => {
                 <EventHoverComponent />
               </Grid>
             </Button>
+            
             <Button
               onClick={() => navigate("/corporate")}
               sx={{
@@ -320,6 +318,20 @@ const Navbar = () => {
                 Gallery
               </Button>
             )}
+            {admin?
+            (<Button
+              onClick={() => {
+                navigate("/admin/dataforms");
+                scrollToTop();
+              }}
+              sx={{ fontWeight: "600", color: "#2474D2", height: "100%" }}
+              className="navText"
+            >
+             Add Data
+            </Button>):
+            <></>
+            }
+
             {windowEmployee ? (
               <Button
                 onClick={() => {
@@ -703,6 +715,10 @@ const Navbar = () => {
                     </Grid>
                   </Link>
                 )}
+
+         
+
+                
 
                 {employee ? (
                   <Link to="/e/redeem">

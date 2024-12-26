@@ -281,7 +281,10 @@ const WindowPurchase = () => {
   // split payment logic
   const handleCashAmountChange = (e) => {
     const value = e.target.value || 0 ;
-    setcashAmount(value); 
+    setcashAmount(value);
+    if (cashAmount<0){
+      return
+    } 
     if (value + onlineAmount > totalPrice) {
       setonlineAmount(totalPrice - value); 
     } else {
@@ -292,6 +295,9 @@ const WindowPurchase = () => {
   const handleOnlineAmountChange = (e) => {
     const value =e.target.value || 0 ;
     setonlineAmount(value); 
+    if (onlineAmount<0){
+      return
+    } 
     if (value + cashAmount > totalPrice) {
       setcashAmount(totalPrice - value); 
     } else {

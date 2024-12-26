@@ -21,6 +21,7 @@ import Franchise from "./components/franchise/franchise";
 import Corporate from "./components/corporate/corporate";
 import Gallery from "./components/gallery";
 import Packages from "./components/package/package";
+import DataForms from "./components/data-entry/entry";
 import Booknow from "./components/booknow/booknow";
 import Showdetails from "./actions/showdetails";
 import Icon from "./components/icon/icon";
@@ -279,6 +280,10 @@ export const router = createBrowserRouter([
             path: "showdetails",
             element: <Showdetails />,
           },
+          {
+            path:"dataforms",
+            element:<DataForms/>,
+          }
         ],
       },
     ],

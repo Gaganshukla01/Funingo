@@ -1,10 +1,6 @@
 import axios from 'axios';
 import { apiUrl } from '../constants';
 import { createAsyncThunk } from '@reduxjs/toolkit';
-// import { useEffect, useState } from 'react';
-// import 'bootstrap/dist/css/bootstrap.min.css'
-
-
 
 export const getStatistics = async ({
   token,
