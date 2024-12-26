@@ -68,15 +68,6 @@ app.use(
   })
 );
 
-// app.use(
-//   cors({
-//     origin: ["https://funingo.fun", "http://127.0.0.1:8000"],
-//     methods: ["GET", "POST", "PUT", "DELETE"],
-//     allowedHeaders: ["Content-Type", "Authorization"],
-//     credentials: true,
-//   })
-// );
-
 app.use("/user", userRouter);
 app.use("/otp", otpRouter);
 app.use("/ticket", ticketRouter);
