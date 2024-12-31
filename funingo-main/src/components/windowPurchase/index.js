@@ -23,6 +23,7 @@ import DeleteForeverIcon from "@mui/icons-material/DeleteForever";
 import ListedOptionLayout from "./ListedOptionLayout";
 import { addComplementaryCoins, windowPurchase } from "../../actions/exployee";
 import { useDispatch, useSelector } from "react-redux";
+import { selectUserType } from '../../utils/store/slice/userSlice';
 import { useNavigate } from "react-router-dom";
 import ReactSelect from "react-select";
 import ConfirmationModal from "./modal";
@@ -34,10 +35,13 @@ import statesData, { localityData } from "../auth/states";
 import ComplimentaryDialog from "./ComplimentaryDialog";
 import moment from "moment";
 import { amber } from "@mui/material/colors";
-
 const WindowPurchase = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const userType = useSelector(selectUserType);
+
+  // console.log(userType+"usertype") 
+  // checking usertype 
 
   const [selectedSlots, setSelectedSlots] = useState([
     {
@@ -47,6 +51,7 @@ const WindowPurchase = () => {
       gender: "",
     },
   ]);
+  
   const [couponDiscount, setCouponDiscount] = useState({});
   const [code, setCode] = useState("");
   const [count, setCount] = useState(1);
@@ -61,8 +66,8 @@ const WindowPurchase = () => {
   const { token } = useSelector((state) => state.userSlice);
   const [shortId, setShortId] = useState(null);
   const [paymentMode, setPaymentMode] = useState(null);
-  const [cashAmount, setcashAmount] = useState(0);
-  const [onlineAmount, setonlineAmount] = useState(0);
+  const [cashAmount, setcashAmount] = useState(null);
+  const [onlineAmount, setonlineAmount] = useState(null);
   const [confirmationModalOpen, setConfirmationModalOpen] = useState(false);
   const [dummyFreebiesData, setDummyFreebiesData] = useState([]);
   const [existingFuningoMoney, setExistingFuningoMoney] = useState(0);
@@ -81,6 +86,7 @@ const WindowPurchase = () => {
     city: "Jabalpur",
     locality: "",
   });
+
 
   const states = Object.keys(statesData).map((state) => ({
     label: state,
@@ -130,6 +136,8 @@ const WindowPurchase = () => {
       setHelperText("");
       setIsValid(true);
     }
+
+   
 
     async function fetchData() {
       try {
@@ -280,40 +288,35 @@ const WindowPurchase = () => {
 
   // split payment logic
   const handleCashAmountChange = (e) => {
-    const value = e.target.value || 0 ;
+    const value = e.target.value || 0;
     setcashAmount(value);
-    if (cashAmount<0){
-      return
-    } 
-    if (value + onlineAmount > totalPrice) {
-      setonlineAmount(totalPrice - value); 
+    if (totalPrice - value > 0) {
+      setonlineAmount(totalPrice - value);
     } else {
       setonlineAmount(onlineAmount);
     }
   };
-  
+
   const handleOnlineAmountChange = (e) => {
-    const value =e.target.value || 0 ;
-    setonlineAmount(value); 
-    if (onlineAmount<0){
-      return
-    } 
-    if (value + cashAmount > totalPrice) {
-      setcashAmount(totalPrice - value); 
+    const value = e.target.value || 0;
+    setonlineAmount(value);
+    if (totalPrice - value > 0) {
+      setcashAmount(totalPrice - value);
     } else {
-      setcashAmount(cashAmount); 
+      setcashAmount(cashAmount);
     }
   };
 
   const handlePackageDataResponse = (data) => {
     setPackageData(
-      data.map((item, index) => {
-        const obj = {
+      data
+        .filter((item) => {
+          return userType=="admin" || item.name !== "UNLIMITED";
+        })
+        .map((item) => ({
           ...item,
           id: item?._id,
-        };
-        return obj;
-      })
+        }))
     );
   };
   const handlePurchase = async (callback) => {
@@ -330,8 +333,8 @@ const WindowPurchase = () => {
           premiumDiscount -
           (couponDiscount.discount || 0) -
           customDiscount,
-        cash_amount:cashAmount,
-        online_amount:onlineAmount,
+        cash_amount: cashAmount,
+        online_amount: onlineAmount,
         details,
         token,
         phone_no: phoneNumber ? "+91-" + phoneNumber : undefined,
@@ -375,7 +378,11 @@ const WindowPurchase = () => {
           throw new Error("Couldn't Fetch Packages");
         }
 
-        handlePackageDataResponse(response.data.packages);
+        // logic to handle unlimted package
+        let rawData = response.data.packages;
+
+        handlePackageDataResponse(rawData);
+
         setIsLoading(false);
       } catch (error) {
         console.error(error.message, error);
@@ -1013,33 +1020,34 @@ const WindowPurchase = () => {
               isClearable={false}
             />
           </Grid>
-  <div style={{
-    display: "flex",
-    justifyContent: "space-between",
-    marginBottom: "10px",
-  }}>
-    <Grid>
-      <Typography>Enter Cash Amount</Typography>
-      <TextField
-        type="number"
-        value={cashAmount} 
-        onChange={handleCashAmountChange } 
-        min={0}
-      />
-    </Grid>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              marginBottom: "10px",
+            }}
+          >
+            <Grid>
+              <Typography>Enter Cash Amount</Typography>
+              <TextField
+                type="number"
+                value={cashAmount}
+                onChange={handleCashAmountChange}
+                min={0}
+              />
+            </Grid>
 
-    <Grid>
-      <Typography>Enter Online Amount</Typography>
-      <TextField
-        type="number"
-        value={onlineAmount} 
-        onChange={handleOnlineAmountChange}
-        min={0}
-      />
-    </Grid>
-  </div>
+            <Grid>
+              <Typography>Enter Online Amount</Typography>
+              <TextField
+                type="number"
+                value={onlineAmount}
+                onChange={handleOnlineAmountChange}
+                min={0}
+              />
+            </Grid>
+          </div>
 
-         
           {shortId ? (
             <Box
               sx={{
@@ -1057,14 +1065,14 @@ const WindowPurchase = () => {
                   navigate(`/we/get-qr-tickets?tid=${shortId}`);
                   scrollToTop();
                 }}
-              > 
+              >
                 Generate QR Tickets
               </Button>
             </Box>
           ) : (
             <>
               <Button
-               onClick={() => handlePurchase()}
+                onClick={() => handlePurchase()}
                 variant="contained"
                 fullWidth
                 disabled={!paymentMode || count === 0 || phoneNumber === ""}
