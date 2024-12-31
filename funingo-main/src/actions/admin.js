@@ -165,7 +165,7 @@ export const addCoupon = async ({ data, token }) => {
   }
 };
 
-// Phone Numbers
+
 export const getPhoneNumbers = createAsyncThunk(
   'fetch/phone-numbers',
   async (_, { getState }) => {
