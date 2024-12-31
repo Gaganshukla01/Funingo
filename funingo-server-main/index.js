@@ -19,6 +19,7 @@ import phoneNoRouter from "./routes/phone-no.js";
 import franchiseRouter from "./routes/franchise.js";
 import careerApplicationSchema from "./routes/career-application.js";
 import activityRouter from "./routes/activity.js";
+import dataSave from "./routes/data.js";
 import { saveFreebiesAutomationFunction } from "./utilities/utils.js";
 // import { getAddedFreebies } from './controllers/admin/index.js'; // Import the function
 import Ticket from "./models/ticket.js";
@@ -81,6 +82,7 @@ app.use("/phone", phoneNoRouter);
 app.use("/franchise", franchiseRouter);
 app.use("/career-application", careerApplicationSchema);
 app.use("/activity", activityRouter);
+app.use("/data",dataSave)
 app.get("/", async (req, res) => {
   res.status(200).send(`Server up and running on ${process.env.NODE_ENV}!`);
 });
