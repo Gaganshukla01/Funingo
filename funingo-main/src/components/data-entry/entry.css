@@ -1,0 +1,10 @@
+input{
+    margin:5px;
+}
+#Btn{
+    width: 100%;
+    background-color: green;
+    color: white;
+    font-weight: 800;
+    margin: 5px;
+}

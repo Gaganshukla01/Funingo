@@ -1,11 +1,9 @@
 import React, { useState } from "react";
 import { memo } from "react";
 import { Grid, Typography } from "@mui/material";
-
 import Snackbar from "@mui/material/Snackbar";
 import MuiAlert from "@mui/material/Alert";
-// import IconButton from "@mui/material/IconButton";
-// import CancelIcon from "@mui/icons-material/Cancel";
+
 
 const Alert = React.forwardRef(function Alert(props, ref) {
   return <MuiAlert elevation={6} ref={ref} variant="filled" {...props} />;
