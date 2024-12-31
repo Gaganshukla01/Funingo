@@ -61,8 +61,8 @@ const WindowPurchase = () => {
   const { token } = useSelector((state) => state.userSlice);
   const [shortId, setShortId] = useState(null);
   const [paymentMode, setPaymentMode] = useState(null);
-  const [cashAmount, setcashAmount] = useState(0);
-  const [onlineAmount, setonlineAmount] = useState(0);
+  const [cashAmount, setcashAmount] = useState(null);
+  const [onlineAmount, setonlineAmount] = useState(null);
   const [confirmationModalOpen, setConfirmationModalOpen] = useState(false);
   const [dummyFreebiesData, setDummyFreebiesData] = useState([]);
   const [existingFuningoMoney, setExistingFuningoMoney] = useState(0);
@@ -281,28 +281,16 @@ const WindowPurchase = () => {
   // split payment logic
   const handleCashAmountChange = (e) => {
     const value = e.target.value || 0 ;
-    setcashAmount(value);
-    if (cashAmount<0){
-      return
-    } 
-    if (value + onlineAmount > totalPrice) {
+    if (totalPrice-value > 0) {
       setonlineAmount(totalPrice - value); 
-    } else {
-      setonlineAmount(onlineAmount);
-    }
+    } 
   };
   
   const handleOnlineAmountChange = (e) => {
     const value =e.target.value || 0 ;
-    setonlineAmount(value); 
-    if (onlineAmount<0){
-      return
-    } 
-    if (value + cashAmount > totalPrice) {
+    if (totalPrice-value>0) {
       setcashAmount(totalPrice - value); 
-    } else {
-      setcashAmount(cashAmount); 
-    }
+    } 
   };
 
   const handlePackageDataResponse = (data) => {
