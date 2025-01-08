@@ -49,6 +49,8 @@ import Register from "./components/auth/signup";
 import { getFreebies } from "./actions/ticket";
 import { openPremiumSubscriptionModal } from "./utils/store/slice/appSlice";
 import Policy from "./components/policies";
+import Analytics from "./components/analytics/Analytics";
+import RestaurantDetailedSales from "./components/analytics/RestaurantDetailedSales";
 
 const App = () => {
   return (
@@ -179,6 +181,14 @@ export const router = createBrowserRouter([
           {
             path: "/",
             element: <Home />,
+          },
+          {
+            path: "/analytics",
+            element: <Analytics />,
+          },
+          {
+            path: "/analytics/restaurant-detailed-sales",
+            element: <RestaurantDetailedSales />,
           },
           {
             path: "/zone",

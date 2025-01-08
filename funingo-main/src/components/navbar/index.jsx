@@ -162,6 +162,46 @@ const Navbar = () => {
                 <ZoneHoverComponent />
               </Grid>
             </Button>
+              <Button
+                  name="zone-btn"
+                  onClick={() => navigate("/analytics")}
+                  sx={{
+                      fontWeight: "600",
+                      color: "#2474D2",
+                      height: "100%",
+                      position: "relative",
+                      textTransform: "capitalize",
+                      "&:hover": {
+                          "& #zone-hover-box": {
+                              display: "flex",
+                          },
+                      },
+                  }}
+              >
+                  Analytics
+                  <img
+                      className="arrow-image ml-1 h-[10px] w-4"
+                      src={downArrow}
+                      alt=""
+                  />
+                  <Grid
+                      className="hover-box"
+                      id="zone-hover-box"
+                      sx={{
+                          position: "absolute",
+                          top: "88px",
+                          left: "-23vw",
+                          display: "none",
+                          width: "84rem",
+                          justifyContent: "center",
+                          overflowY: "auto",
+                          overflowX: "hidden",
+                          background: "#2474d2",
+                      }}
+                  >
+                      <ZoneHoverComponent />
+                  </Grid>
+              </Button>
             <Button
               onClick={() => navigate("/events")}
               sx={{
