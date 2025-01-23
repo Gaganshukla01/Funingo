@@ -21,7 +21,6 @@ import careerApplicationSchema from "./routes/career-application.js";
 import activityRouter from "./routes/activity.js";
 import dataSave from "./routes/data.js";
 import { saveFreebiesAutomationFunction } from "./utilities/utils.js";
-// import { getAddedFreebies } from './controllers/admin/index.js'; // Import the function
 import Ticket from "./models/ticket.js";
 
 if (["production", "development"].includes(process.env.NODE_ENV)) {
