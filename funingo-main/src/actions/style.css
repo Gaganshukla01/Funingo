@@ -2,7 +2,6 @@
     display: flex;
     justify-content: space-around;
     align-items: normal;
-    padding: 20px;
   }
   
   .column {
