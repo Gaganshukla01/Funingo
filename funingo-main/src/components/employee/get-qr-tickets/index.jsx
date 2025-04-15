@@ -337,6 +337,8 @@ import { useLocation } from "react-router-dom";
 import NavigateNextIcon from "@mui/icons-material/NavigateNext";
 import NavigateBeforeIcon from "@mui/icons-material/NavigateBefore";
 
+
+
 const GetQRTickets = () => {
   const [ticketId, setTicketId] = useState("");
   const [phoneNo, setPhoneNo] = useState("");
@@ -531,18 +533,54 @@ const GetQRTickets = () => {
               alignItems={"center"}
               justifyContent={"center"}
             >
-              {/* <div> */}
-              <Typography sx={{ textAlign: "center", fontWeight: "600" }}>
-                {qrTicketsData.tickets?.[current]?.short_id}
-              </Typography>
-              {/* <img
+              {/*qr ticket genration..  */}
+              <div style={{ textAlign: "center" }}>
+                <Typography sx={{ fontWeight: "600" }}>
+                  {qrTicketsData.tickets?.[current]?.short_id}
+                </Typography>
+                <img
+                  id="qrCodeImage"
                   src={qrTicketsData.tickets?.[current]?.qr}
                   alt="qr-code"
                   width="150px"
                   height="150px"
-                /> */}
-              {/* </div> */}
-              {/* <Typography>Total Coins: {qrTicketsData.total_coins}</Typography> */}
+                />
+                
+                <Button
+                  variant="contained"
+                  sx={{ marginTop: "10px" }}
+                  onClick={async () => {
+                    try {
+                      const qrUrl = qrTicketsData.tickets?.[current]?.qr;
+                      if (!qrUrl) {
+                        console.error("QR code URL is not available.");
+                        return;
+                      }
+
+                      const response = await fetch(qrUrl);
+                      const blob = await response.blob();
+                      const blobUrl = URL.createObjectURL(blob);
+
+                      const link = document.createElement("a");
+                      link.href = blobUrl;
+                      link.setAttribute(
+                        "download",
+                        `QR_Ticket_${qrTicketsData.tickets?.[current]?.short_id}.png`
+                      );
+                      document.body.appendChild(link);
+                      link.click();
+                      document.body.removeChild(link);
+                      URL.revokeObjectURL(blobUrl);
+                    } catch (error) {
+                      console.error("Error downloading QR code:", error);
+                    }
+                  }}
+                >
+                  Download QR
+                </Button>
+              </div>
+
+              {/* <Typography>Total Coins: {qrTicketsData.total_coins}</Typography>   */}
             </Grid>
             <Grid
               sx={{
