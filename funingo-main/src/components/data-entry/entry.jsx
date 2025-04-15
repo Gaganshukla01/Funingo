@@ -6,7 +6,6 @@ import { apiUrl } from '../../constants';
 import { Box, Button, Typography } from '@mui/material';
 import Snackbarcomponent from "../snackbar/snackbar";
 
-
 const Restaurant = ({ onSubmit }) => {
   const [totalSales, setTotalSales] = useState('');
   const [totalAmountReceived, setTotalAmountReceived] = useState('');
