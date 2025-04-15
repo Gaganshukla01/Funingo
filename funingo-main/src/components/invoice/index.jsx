@@ -4,10 +4,23 @@ import { Button } from "@mui/base";
 import "./style.scss"
 import Logo from "../../assets/logo.png";
 
+const currentDate=()=>{
+
+  const today = new Date();
+  const yyyy = today.getFullYear();
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const mm = months[today.getMonth()];
+  const dd = today.getDate();
+  const formattedToday = `${dd} ${mm} ${yyyy}`; 
+  
+  return formattedToday;
+
+}
+
 const Invoice = () => {
   const [invoiceData, setInvoiceData] = useState({
     invoiceNumber: "353",
-    invoiceDate: "2025-01-17",
+    invoiceDate: currentDate(),
     gstNumber: "23AAJFF2527Q1Z5",
     hsnCode: "999699",
     paymentMethod: "CASH",
@@ -15,6 +28,7 @@ const Invoice = () => {
       { item: "Coin Based / All in One", amount: 13050, cgst: 9, sgst: 9 },
     ],
   });
+
 
   const calculateTaxes = (amount, rate) => (amount * rate) / 100;
   const totalAmount = invoiceData.items.reduce(
@@ -46,7 +60,7 @@ const Invoice = () => {
             </div>
 
             <div id="lowerDiv">
-                <h3>Date. 1</h3>
+                <h3>Date. {invoiceData.invoiceDate}</h3>
                 <h3>GST No.:{invoiceData.gstNumber}</h3>
                 <h3>HSN CODE.:{invoiceData.hsnCode}</h3>
                 
@@ -58,10 +72,31 @@ const Invoice = () => {
 
             <div id="table">
                 <table>
-                    <th>
-                        
-                    </th>
+                    <tr id="head">
+                      <th className="invoicehead" style={{borderRight:"3px solid black"}}>S.No</th>
+                      <th className="invoicehead" style={{borderRight:"3px solid black"}}>Package</th>
+                      <th className="invoicehead" style={{borderRight:"3px solid black"}}>Amount</th>
+                      <th className="invoicehead">Net Amount</th>
+                    </tr>
+                    <tr id="datail">
+                      <td className="invoicedatatable " style={{borderLeft:"3px solid black",borderBottom:"3px solid black"}}>1</td>
+                      <td className="invoicedatatable " style={{borderLeft:"3px solid black",borderBottom:"3px solid black",borderRight:"3px solid black"}}>Coin Based/All in One</td>
+                      <td className="invoicedatatable" style={{borderBottom:"3px solid black"}}>
+                        <ul>
+                          <li className="listInvoiceAmount" style={{borderBottom:"2px solid black"}}>Amount:{totalAmount}</li>
+                          <li className="listInvoiceAmount" style={{borderBottom:"2px solid black"}}>CGST 9% :{totalCGST}</li>
+                          <li className="listInvoiceAmount" style={{borderBottom:"2px solid black"}}>SGST 9% :{totalSGST}</li>
+                          <li style={{padding:"10px"}}>Total Tax:{totalTax}</li>
+                        </ul>
+                      </td>
+                      <td className="invoicedatatable" style={{borderLeft:"3px solid black",borderBottom:"3px solid black",borderRight:"3px solid black"}}>{grandTotal}</td>
+                
+                    </tr>
                 </table>
+
+                <div id="accountDetails">
+                  
+                </div>
             </div>
 
         </div>
