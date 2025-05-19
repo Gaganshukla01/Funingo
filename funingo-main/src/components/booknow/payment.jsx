@@ -463,13 +463,13 @@ const PaymentButton = ({
   };
   return (
     <>
-      {consentFormOpen && (
+      {/* {consentFormOpen && (
         <ConfirmationModal
           open={consentFormOpen}
           onClose={() => setConsentFormOpen(false)}
           handlePurchase={handlePayment}
         />
-      )}
+      )} */}
       {addMoreModalOpen && (
         <AddMoreModal
           open={addMoreModalOpen}
