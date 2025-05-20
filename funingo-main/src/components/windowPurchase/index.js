@@ -259,9 +259,7 @@ const WindowPurchase = () => {
       const packagePrice = selectedSlot.package?.price || 0;
       totalPrice += packagePrice;
     });
-    // setGstPrice(Math.round((0.18 * totalPrice + Number.EPSILON) * 100) / 100);
-    // totalPrice += 0.18 * totalPrice;
-    // totalPrice = Math.round((totalPrice + Number.EPSILON) * 100) / 100;
+
     if (premiumDiscount) setPremiumDiscount(totalPrice / 2);
     setTotalPrice(totalPrice);
   };
@@ -322,37 +320,53 @@ const WindowPurchase = () => {
   };
 
   
-const handleExcel = async () => {
-  try {
-    const response = await axios.get(`${apiUrl}/bill/billinexcel`, {
-      responseType: 'blob', // Important: handle binary data
-    });
-
-    // Create a blob from the response data
-    const blob = new Blob([response.data], {
-      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    });
-
-    // Create a URL for the blob
-    const url = window.URL.createObjectURL(blob);
-
-    // Create a temporary link element
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', 'exported_data.xlsx'); // File name to save as
-    document.body.appendChild(link);
-
-    // Programmatically click the link to trigger the download
-    link.click();
-
-    // Clean up - remove link and revoke object URL
-    link.parentNode.removeChild(link);
-    window.URL.revokeObjectURL(url);
-  } catch (error) {
-    console.error('Error downloading Excel file:', error);
-    alert('Failed to download Excel file. Please try again.');
-  }
-};
+  const handleExcel = async () => {
+    try {
+      const response = await axios.get(`${apiUrl}/bill/billinexcel`, {
+        responseType: 'blob',
+        // Add headers to ensure UTF-8 handling
+        headers: {
+          'Accept': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          'Accept-Charset': 'utf-8'
+        }
+      });
+  
+      // Get the filename from response headers if available
+      const contentDisposition = response.headers['content-disposition'];
+      let filename = 'exported_data.xlsx';
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+        if (filenameMatch && filenameMatch[1]) {
+          filename = filenameMatch[1].replace(/['"]/g, '');
+        }
+      }
+  
+      // Create blob with explicit UTF-8 handling
+      const blob = new Blob([response.data], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      });
+  
+      // Alternative method using URL.createObjectURL
+      const url = window.URL.createObjectURL(blob);
+      
+      // Create and trigger download
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      
+      // Ensure the link is added to DOM for some browsers
+      document.body.appendChild(link);
+      link.click();
+      
+      // Cleanup
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+  
+    } catch (error) {
+      console.error('Error downloading Excel file:', error);
+      alert('Failed to download Excel file. Please try again.');
+    }
+  };
  
   const handlePurchase = async (callback) => {
     const details = selectedSlots.map((data) => ({
