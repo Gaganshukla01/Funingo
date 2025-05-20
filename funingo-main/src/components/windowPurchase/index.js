@@ -320,53 +320,36 @@ const WindowPurchase = () => {
   };
 
   
-  const handleExcel = async () => {
-    try {
-      const response = await axios.get(`${apiUrl}/bill/billinexcel`, {
-        responseType: 'blob',
-        // Add headers to ensure UTF-8 handling
-        headers: {
-          'Accept': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-          'Accept-Charset': 'utf-8'
-        }
-      });
+const handleExcel = async () => {
+  try {
+    const response = await axios.get(`${apiUrl}/bill/billinexcel`, {
+      responseType: 'blob', 
+    });
+
+    const blob = new Blob([response.data], {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    });
+
+    const url = window.URL.createObjectURL(blob);
+
+    
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', 'FUNINGO_BILLS.xlsx'); 
+    document.body.appendChild(link);
+
   
-      // Get the filename from response headers if available
-      const contentDisposition = response.headers['content-disposition'];
-      let filename = 'exported_data.xlsx';
-      if (contentDisposition) {
-        const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
-        if (filenameMatch && filenameMatch[1]) {
-          filename = filenameMatch[1].replace(/['"]/g, '');
-        }
-      }
+    link.click();
+
   
-      // Create blob with explicit UTF-8 handling
-      const blob = new Blob([response.data], {
-        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-      });
-  
-      // Alternative method using URL.createObjectURL
-      const url = window.URL.createObjectURL(blob);
-      
-      // Create and trigger download
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = filename;
-      
-      // Ensure the link is added to DOM for some browsers
-      document.body.appendChild(link);
-      link.click();
-      
-      // Cleanup
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-  
-    } catch (error) {
-      console.error('Error downloading Excel file:', error);
-      alert('Failed to download Excel file. Please try again.');
-    }
-  };
+    link.parentNode.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error('Error downloading Excel file:', error);
+    alert('Failed to download Excel file. Please try again.');
+  }
+};
+
  
   const handlePurchase = async (callback) => {
     const details = selectedSlots.map((data) => ({
