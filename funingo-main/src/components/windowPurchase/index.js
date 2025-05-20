@@ -328,6 +328,8 @@ const handleExcel = async () => {
       responseType: 'blob', // Important: handle binary data
     });
 
+    console.log(response); // Log the response to check its structure
+
     // Create a blob from the response data
     const blob = new Blob([response.data], {
       type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -353,6 +355,7 @@ const handleExcel = async () => {
     alert('Failed to download Excel file. Please try again.');
   }
 };
+
  
   const handlePurchase = async (callback) => {
     const details = selectedSlots.map((data) => ({

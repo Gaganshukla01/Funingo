@@ -48,9 +48,6 @@ export const BillExcel = async (req, res) => {
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', 'attachment; filename=exported_data.xlsx');
 
-    // Write BOM for UTF-8
-    res.write('\uFEFF'); 
-
     // Write the workbook to the response stream
     await workbook.xlsx.write(res);
     
