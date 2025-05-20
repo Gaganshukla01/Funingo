@@ -325,29 +325,25 @@ const WindowPurchase = () => {
 const handleExcel = async () => {
   try {
     const response = await axios.get(`${apiUrl}/bill/billinexcel`, {
-      responseType: 'blob', // Important: handle binary data
+      responseType: 'blob', 
     });
 
-    console.log(response); // Log the response to check its structure
-
-    // Create a blob from the response data
     const blob = new Blob([response.data], {
       type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     });
 
-    // Create a URL for the blob
     const url = window.URL.createObjectURL(blob);
 
-    // Create a temporary link element
+    
     const link = document.createElement('a');
     link.href = url;
-    link.setAttribute('download', 'exported_data.xlsx'); // File name to save as
+    link.setAttribute('download', 'FUNINGO_BILLS.xlsx'); 
     document.body.appendChild(link);
 
-    // Programmatically click the link to trigger the download
+  
     link.click();
 
-    // Clean up - remove link and revoke object URL
+  
     link.parentNode.removeChild(link);
     window.URL.revokeObjectURL(url);
   } catch (error) {
