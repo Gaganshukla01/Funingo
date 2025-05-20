@@ -42,9 +42,6 @@ const WindowPurchase = () => {
   const dispatch = useDispatch();
   const userType = useSelector(selectUserType);
 
-  // console.log(userType+"usertype")
-  // checking usertype
-
   const [selectedSlots, setSelectedSlots] = useState([
     {
       package: "",
@@ -506,22 +503,7 @@ const handleExcel = async () => {
             alignItems: "center",
           }}
         >
-          {/* <FormControl sx={{ width: { xs: "100%", lg: "50%" } }}>
-            <TextField
-              label="Select the number of options"
-              type="number"
-              value={count}
-              onChange={handleCountChange}
-            />
-          </FormControl> */}
-          {/* <FormControl sx={{ width: { xs: '100%', lg: '50%' } }}>
-            <TextField
-              label='Discount'
-              type='number'
-              value={discount}
-              onChange={handlediscountChange}
-            />
-          </FormControl> */}
+    
           <FormControl sx={{ width: { xs: "100%", lg: "50%" } }}>
             <p style={{ fontSize: "14px", fontWeight: "500" }}>Phone Number</p>
             <TextField
