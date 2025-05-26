@@ -42,9 +42,6 @@ const WindowPurchase = () => {
   const dispatch = useDispatch();
   const userType = useSelector(selectUserType);
 
-  // console.log(userType+"usertype")
-  // checking usertype
-
   const [selectedSlots, setSelectedSlots] = useState([
     {
       package: "",
@@ -259,9 +256,7 @@ const WindowPurchase = () => {
       const packagePrice = selectedSlot.package?.price || 0;
       totalPrice += packagePrice;
     });
-    // setGstPrice(Math.round((0.18 * totalPrice + Number.EPSILON) * 100) / 100);
-    // totalPrice += 0.18 * totalPrice;
-    // totalPrice = Math.round((totalPrice + Number.EPSILON) * 100) / 100;
+
     if (premiumDiscount) setPremiumDiscount(totalPrice / 2);
     setTotalPrice(totalPrice);
   };
@@ -507,22 +502,7 @@ const WindowPurchase = () => {
             alignItems: "center",
           }}
         >
-          {/* <FormControl sx={{ width: { xs: "100%", lg: "50%" } }}>
-            <TextField
-              label="Select the number of options"
-              type="number"
-              value={count}
-              onChange={handleCountChange}
-            />
-          </FormControl> */}
-          {/* <FormControl sx={{ width: { xs: '100%', lg: '50%' } }}>
-            <TextField
-              label='Discount'
-              type='number'
-              value={discount}
-              onChange={handlediscountChange}
-            />
-          </FormControl> */}
+    
           <FormControl sx={{ width: { xs: "100%", lg: "50%" } }}>
             <p style={{ fontSize: "14px", fontWeight: "500" }}>Phone Number</p>
             <TextField

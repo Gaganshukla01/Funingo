@@ -18,11 +18,6 @@ const Invoice = ({ invoiceData }) => {
   const totalTax = totalCGST + totalSGST;
   const grandTotal = totalAmount + totalTax;
 
-
-
-
-
-
   const uploadInvoice = async (pdfBlob) => {
 
     try {
