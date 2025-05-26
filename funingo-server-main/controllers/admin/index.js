@@ -1956,7 +1956,7 @@ export const getWeekdayMonthlyStatistics = async (req, res) => {
       },
       {
         $match: {
-          dayOfWeek: { $in: [2, 3, 4, 5, 6] } // Assuming 1 is Sunday and 7 is Saturday
+          dayOfWeek: { $in: [2, 3, 4, 5, 6] } 
         }
       },
       {
@@ -2449,7 +2449,7 @@ export const getBookingFrequency = async (req, res) => {
       },
       {
         $lookup: {
-          from: 'users', // assuming 'users' is the name of the User model's collection
+          from: 'users', 
           localField: 'users',
           foreignField: '_id',
           as: 'populatedUsers'

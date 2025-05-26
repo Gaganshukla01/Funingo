@@ -2,8 +2,10 @@ import React, { useEffect, useState } from "react";
 import { validatePhoneNumber } from "../../utils/validators/validate";
 import shortid from "shortid";
 import axios from "axios";
+import html2pdf from "html2pdf.js";
 import { apiUrl, flag_prices, payment_modes } from "../../constants";
 import Coin from "../admin/Coin";
+import Invoice from "../invoice";
 import { getDiscount } from "../../actions/ticket";
 import {
   TextField,
@@ -23,7 +25,7 @@ import DeleteForeverIcon from "@mui/icons-material/DeleteForever";
 import ListedOptionLayout from "./ListedOptionLayout";
 import { addComplementaryCoins, windowPurchase } from "../../actions/exployee";
 import { useDispatch, useSelector } from "react-redux";
-import { selectUserType } from '../../utils/store/slice/userSlice';
+import { selectUserType } from "../../utils/store/slice/userSlice";
 import { useNavigate } from "react-router-dom";
 import ReactSelect from "react-select";
 import ConfirmationModal from "./modal";
@@ -40,9 +42,6 @@ const WindowPurchase = () => {
   const dispatch = useDispatch();
   const userType = useSelector(selectUserType);
 
-  // console.log(userType+"usertype") 
-  // checking usertype 
-
   const [selectedSlots, setSelectedSlots] = useState([
     {
       package: "",
@@ -51,7 +50,7 @@ const WindowPurchase = () => {
       gender: "",
     },
   ]);
-  
+
   const [couponDiscount, setCouponDiscount] = useState({});
   const [code, setCode] = useState("");
   const [count, setCount] = useState(1);
@@ -66,6 +65,7 @@ const WindowPurchase = () => {
   const { token } = useSelector((state) => state.userSlice);
   const [shortId, setShortId] = useState(null);
   const [paymentMode, setPaymentMode] = useState(null);
+  const [showExtraField,setExtraField]=useState(false);
   const [cashAmount, setcashAmount] = useState(null);
   const [onlineAmount, setonlineAmount] = useState(null);
   const [confirmationModalOpen, setConfirmationModalOpen] = useState(false);
@@ -78,6 +78,7 @@ const WindowPurchase = () => {
   const [isPremium, setIsPremium] = useState(false);
   const [premiumDiscount, setPremiumDiscount] = useState(0);
   const [customDiscount, setCustomDiscount] = useState(0);
+  const [invoiceData, setInvoiceData] = useState(null);
   const [complementaryCoinsModalOpen, setComplementaryCoinsModalOpen] =
     useState(false);
 
@@ -86,7 +87,6 @@ const WindowPurchase = () => {
     city: "Jabalpur",
     locality: "",
   });
-
 
   const states = Object.keys(statesData).map((state) => ({
     label: state,
@@ -136,8 +136,6 @@ const WindowPurchase = () => {
       setHelperText("");
       setIsValid(true);
     }
-
-   
 
     async function fetchData() {
       try {
@@ -258,9 +256,7 @@ const WindowPurchase = () => {
       const packagePrice = selectedSlot.package?.price || 0;
       totalPrice += packagePrice;
     });
-    // setGstPrice(Math.round((0.18 * totalPrice + Number.EPSILON) * 100) / 100);
-    // totalPrice += 0.18 * totalPrice;
-    // totalPrice = Math.round((totalPrice + Number.EPSILON) * 100) / 100;
+
     if (premiumDiscount) setPremiumDiscount(totalPrice / 2);
     setTotalPrice(totalPrice);
   };
@@ -311,7 +307,7 @@ const WindowPurchase = () => {
     setPackageData(
       data
         .filter((item) => {
-          return userType=="admin" || item.name !== "UNLIMITED";
+          return userType == "admin" || item.name !== "UNLIMITED";
         })
         .map((item) => ({
           ...item,
@@ -319,6 +315,39 @@ const WindowPurchase = () => {
         }))
     );
   };
+
+  // for download sales data
+// const handleExcel = async () => {                    
+//   try {
+//     const response = await axios.get(`${apiUrl}/bill/billinexcel`, {
+//       responseType: 'blob', 
+//     });
+
+//     const blob = new Blob([response.data], {
+//       type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+//     });
+
+//     const url = window.URL.createObjectURL(blob);
+
+    
+//     const link = document.createElement('a');
+//     link.href = url;
+//     link.setAttribute('download', 'FUNINGO_BILLS.xlsx'); 
+//     document.body.appendChild(link);
+
+  
+//     link.click();
+
+  
+//     link.parentNode.removeChild(link);
+//     window.URL.revokeObjectURL(url);
+//   } catch (error) {
+//     console.error('Error downloading Excel file:', error);
+//     alert('Failed to download Excel file. Please try again.');
+//   }
+// };
+
+ 
   const handlePurchase = async (callback) => {
     const details = selectedSlots.map((data) => ({
       ...data,
@@ -339,7 +368,6 @@ const WindowPurchase = () => {
         token,
         phone_no: phoneNumber ? "+91-" + phoneNumber : undefined,
         payment_mode: paymentMode.value,
-
         coupon: code,
         dob,
         name,
@@ -347,8 +375,18 @@ const WindowPurchase = () => {
       });
 
       if (response.success) {
+        const newInvoiceData = {
+          invoiceNumber: response.short_id,
+          invoiceDate: new Date().toLocaleDateString(),
+          cashAmount:cashAmount,
+          onlineAmount:onlineAmount,
+          paymentMethod: paymentMode.label,
+          totalAmount: totalPrice,
+        };
+        setInvoiceData(newInvoiceData);
         setShortId(response.short_id);
         callback?.(response.short_id);
+        // invoice data setting
         // setConfirmationModalOpen(false);
       }
     } catch (error) {
@@ -406,6 +444,7 @@ const WindowPurchase = () => {
     }
     setTotalPrice(totalPrice);
   }, [selectedSlots, isPremium]);
+  console.log("checking", invoiceData);
 
   return (
     <Grid
@@ -463,22 +502,7 @@ const WindowPurchase = () => {
             alignItems: "center",
           }}
         >
-          {/* <FormControl sx={{ width: { xs: "100%", lg: "50%" } }}>
-            <TextField
-              label="Select the number of options"
-              type="number"
-              value={count}
-              onChange={handleCountChange}
-            />
-          </FormControl> */}
-          {/* <FormControl sx={{ width: { xs: '100%', lg: '50%' } }}>
-            <TextField
-              label='Discount'
-              type='number'
-              value={discount}
-              onChange={handlediscountChange}
-            />
-          </FormControl> */}
+    
           <FormControl sx={{ width: { xs: "100%", lg: "50%" } }}>
             <p style={{ fontSize: "14px", fontWeight: "500" }}>Phone Number</p>
             <TextField
@@ -1008,9 +1032,17 @@ const WindowPurchase = () => {
               options={paymentModes}
               onChange={(e) => {
                 setPaymentMode(e);
+                // for enable Field of cash And Online
+                if(e.value && e.value===' Cash Online'){
+                  setExtraField(true)
+                }
+                else{
+                  setExtraField(false)
+                }
               }}
               placeholder="Payment mode"
               value={paymentMode}
+             
               styles={{
                 container: (styles) => ({
                   ...styles,
@@ -1019,8 +1051,12 @@ const WindowPurchase = () => {
               }}
               isClearable={false}
             />
+            
           </Grid>
-          <div
+
+          {/* for cash and online amount */}
+          {showExtraField &&(
+            <div
             style={{
               display: "flex",
               justifyContent: "space-between",
@@ -1047,6 +1083,7 @@ const WindowPurchase = () => {
               />
             </Grid>
           </div>
+          )}
 
           {shortId ? (
             <Box
@@ -1072,18 +1109,21 @@ const WindowPurchase = () => {
           ) : (
             <>
               <Button
-                onClick={() => handlePurchase()}
+                onClick={() => handlePurchase()  
+                }
                 variant="contained"
                 fullWidth
                 disabled={!paymentMode || count === 0 || phoneNumber === ""}
               >
                 Buy Now
               </Button>
+
               <FormHelperText error>{error}</FormHelperText>
             </>
           )}
         </Grid>
       </Grid>
+      {invoiceData && <Invoice invoiceData={invoiceData} />}
     </Grid>
   );
 };

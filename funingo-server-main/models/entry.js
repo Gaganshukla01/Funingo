@@ -6,5 +6,4 @@ const entrySchema = new mongoose.Schema({
 });
 
 const Entry = mongoose.model('Entry', entrySchema);
-// console.log("Entry pritniinhg",Entry);
 export default Entry;

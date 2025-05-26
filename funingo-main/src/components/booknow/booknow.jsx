@@ -356,20 +356,6 @@ const Booknow = () => {
         setPersons([values]);
         setPersonsData(values);
 
-        // resetForm({
-        //   values: {
-        //     ...values,
-        //     name: "",
-        //     age: "",
-        //     gender: "",
-        //     package: "",
-        //     id: "",
-        //     extra_green: 0,
-        //     extra_red: 0,
-        //     extra_yellow: 0,
-        //     golden_flag: 0,
-        //   },
-        // });
         setSelectedPremium(null);
         return true;
       } catch (error) {
