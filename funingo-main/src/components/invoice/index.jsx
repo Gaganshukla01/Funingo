@@ -89,6 +89,8 @@ const Invoice = ({ invoiceData }) => {
       const response = await axios.post(`${apiUrl}/bill/billpayment`, {
         sno: invoiceData.invoiceNumber,
         Date: invoiceData.invoiceDate,
+        CashAmount:invoiceData.cashAmount,
+        OnlineAmount:invoiceData.onlineAmount,
         paymentType: invoiceData.paymentMethod,
         amount: totalAmount,
         cgst: totalCGST,

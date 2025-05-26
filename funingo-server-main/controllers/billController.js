@@ -13,6 +13,21 @@ export const BillPayment= async(req,res)=>{
 
 }
 
+export const Billfetch=async(req,res)=>{
+
+   try {
+    const billPayments = await BillPaymentModel.find({}).lean();
+    if (!billPayments.length) {
+      return res.status(404).json({ message: 'No bill payment data found' });
+    }
+    res.status(200).json({ success: true, data: billPayments });
+  } catch (error) {
+    console.error('Error fetching bill payment data:', error);
+    res.status(500).json({ error: error.message });
+  }
+
+}
+
 export const BillExcel = async (req, res) => {
   try {
     const data = await BillPaymentModel.find({}).lean();

@@ -321,36 +321,36 @@ const WindowPurchase = () => {
     );
   };
 
-  
-const handleExcel = async () => {
-  try {
-    const response = await axios.get(`${apiUrl}/bill/billinexcel`, {
-      responseType: 'blob', 
-    });
+  // for download sales data
+// const handleExcel = async () => {                    
+//   try {
+//     const response = await axios.get(`${apiUrl}/bill/billinexcel`, {
+//       responseType: 'blob', 
+//     });
 
-    const blob = new Blob([response.data], {
-      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    });
+//     const blob = new Blob([response.data], {
+//       type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+//     });
 
-    const url = window.URL.createObjectURL(blob);
+//     const url = window.URL.createObjectURL(blob);
 
     
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', 'FUNINGO_BILLS.xlsx'); 
-    document.body.appendChild(link);
+//     const link = document.createElement('a');
+//     link.href = url;
+//     link.setAttribute('download', 'FUNINGO_BILLS.xlsx'); 
+//     document.body.appendChild(link);
 
   
-    link.click();
+//     link.click();
 
   
-    link.parentNode.removeChild(link);
-    window.URL.revokeObjectURL(url);
-  } catch (error) {
-    console.error('Error downloading Excel file:', error);
-    alert('Failed to download Excel file. Please try again.');
-  }
-};
+//     link.parentNode.removeChild(link);
+//     window.URL.revokeObjectURL(url);
+//   } catch (error) {
+//     console.error('Error downloading Excel file:', error);
+//     alert('Failed to download Excel file. Please try again.');
+//   }
+// };
 
  
   const handlePurchase = async (callback) => {
@@ -373,7 +373,6 @@ const handleExcel = async () => {
         token,
         phone_no: phoneNumber ? "+91-" + phoneNumber : undefined,
         payment_mode: paymentMode.value,
-
         coupon: code,
         dob,
         name,
@@ -384,15 +383,15 @@ const handleExcel = async () => {
         const newInvoiceData = {
           invoiceNumber: response.short_id,
           invoiceDate: new Date().toLocaleDateString(),
+          cashAmount:cashAmount,
+          onlineAmount:onlineAmount,
           paymentMethod: paymentMode.label,
           totalAmount: totalPrice,
         };
         setInvoiceData(newInvoiceData);
-
         setShortId(response.short_id);
         callback?.(response.short_id);
         // invoice data setting
-
         // setConfirmationModalOpen(false);
       }
     } catch (error) {
@@ -1137,15 +1136,6 @@ const handleExcel = async () => {
                 disabled={!paymentMode || count === 0 || phoneNumber === ""}
               >
                 Buy Now
-              </Button>
-
-              <Button
-                onClick={() => handleExcel()  
-                }
-                variant="contained"
-                fullWidth
-              >
-                Excel Download
               </Button>
 
               <FormHelperText error>{error}</FormHelperText>

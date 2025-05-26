@@ -8,6 +8,12 @@ const BillPaymentSchema = new mongoose.Schema(
     Date: {
       type: String,
     },
+    CashAmount:{
+      type:Number
+    },
+    OnlineAmount:{
+      type:Number
+    },
     paymentType: {
       type: String,
     },
