@@ -1359,7 +1359,9 @@ setCustomerInsights({
 
        <div className="mb-10"> 
         {console.log(transactionData,"in ttttttt")}
-         <PaymentAnalyticsCard salesData={transactionData} />
+         <PaymentAnalyticsCard 
+         salesData={transactionData} 
+         />
        </div>
         
 

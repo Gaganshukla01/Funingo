@@ -136,7 +136,7 @@ const Corporate = () => {
           </Grid>
         </Grid>
       ))}
-     <Invoice/>
+    
     </Grid>
     
   );
