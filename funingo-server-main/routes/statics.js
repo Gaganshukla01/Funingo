@@ -1,9 +1,10 @@
 import express from "express"
 const router = express.Router();
 import {salesFetch,salesAdd,activitiesFetch,activityAdd
-    ,customerinsightFetch,customerinsightAdd,employeeFetch,employeeAdd} from "../controllers/insights.js"
+    ,customerinsightFetch,customerinsightAdd,employeeFetch,employeeAdd,salesLastId} from "../controllers/insights.js"
 
 router.route("/salesfetch").get(salesFetch)
+router.route("/salesId").get(salesLastId)
 router.route("/salesadd").post(salesAdd)
 
 router.route("/activityfetch").get(activitiesFetch)

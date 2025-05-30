@@ -70,7 +70,6 @@ app.use(
     credentials: true,
   })
 );
-
 app.use("/user", userRouter);
 app.use("/otp", otpRouter);
 app.use("/ticket", ticketRouter);
@@ -91,7 +90,6 @@ app.use("/insights",insight)
 app.get("/", async (req, res) => {
   res.status(200).send(`Server up and running on ${process.env.NODE_ENV}!`);
 });
-
 app.get("/getDetails", async (req, res) => {
   console.log("entering");
   Ticket.find()

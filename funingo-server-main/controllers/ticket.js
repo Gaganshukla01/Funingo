@@ -303,7 +303,6 @@ export const verifyTicketPayment = async (req, res) => {
   ticket.payment_verified = true;
   await ticket.save();
 
-  // Adding coins (funingo_money) in user profile
   const totalCoins = ticket.details.reduce(
     (total, curr_person) => total + curr_person.package.coins,
     0

@@ -336,7 +336,6 @@ const RedeemTicket = () => {
     golden: 0,
   });
   const [dialogOpen, setDialogOpen] = useState(false);
-
   const [inputValue, setInputValue] = useState(0);
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -351,7 +350,7 @@ const RedeemTicket = () => {
     setInputValue(price);
     setSelectedColor(price);
     setactivityname(name);
-    setIsDropdownVisible(false); // Hide the dropdown options
+    setIsDropdownVisible(false);
     await fetchActivityBookings(name);
     setLoading(false);
   };
@@ -455,7 +454,20 @@ const RedeemTicket = () => {
             },
           }
         );
-
+         // activitiy sales dashboard data add
+         const getCurrentDateYYYYMMDD = () => {
+          const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+          return `${year}/${month}/${day}`;
+          };
+        
+        const insightActivityRes=await axios.post(`${apiUrl}/insights/activityadd`,{
+          name: activityname,
+          date:getCurrentDateYYYYMMDD(),
+        })
+       
         setSuccess(res.data?.success);
         fetchFuningoMoney(phoneNo);
         setActivityBookings(res.data?.bookings);

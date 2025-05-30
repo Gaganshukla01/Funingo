@@ -46,6 +46,19 @@ const Invoice = ({ invoiceData }) =>
 
   const postBillPayment = async () => {
     try {
+
+      const salesId= await axios.get(`${apiUrl}/insights/salesId`)
+      let Id=salesId.data.nextId
+        const [month, day, year] = invoiceData.invoiceDate.split('/');
+        const formattedDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+      const responseSales= await axios.post(`${apiUrl}/insights/salesadd`,{
+        _id: Id,
+        date: formattedDate,
+        amount: totalAmount,
+        section: "Ticket Counter",
+        split: "Activities"
+      })
+      
       const response = await axios.post(`${apiUrl}/bill/billpayment`, {
         sno: invoiceData.invoiceNumber,
         Date: invoiceData.invoiceDate,
