@@ -97,7 +97,6 @@ export const bookTicket = async (req, res) => {
 
   const new_short_id = new ShortUniqueId({
     dictionary: "number",
-    // length: 3
   });
 
   const newTicket = new Ticket({

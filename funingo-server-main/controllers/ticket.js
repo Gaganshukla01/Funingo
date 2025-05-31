@@ -169,7 +169,6 @@ export const getQRTickets = async (req, res) => {
 
   const longUrl = `${constants.website_url}/e/redeem?tid=${user.phone_no.split("-")[1]}`;
   const shortenedUrl = await shortenUrl(longUrl);
-  // console.log(shortenedUrl)
   const strippedUrl = shortenedUrl.replace(/^https?:\/\//, "");
   const qrCode = await generateStandardQRCode(strippedUrl);
 
@@ -304,7 +303,6 @@ export const verifyTicketPayment = async (req, res) => {
   ticket.payment_verified = true;
   await ticket.save();
 
-  // Adding coins (funingo_money) in user profile
   const totalCoins = ticket.details.reduce(
     (total, curr_person) => total + curr_person.package.coins,
     0

@@ -14,6 +14,25 @@ export const salesFetch= async(req,res)=>{
 
 }
 
+export const salesLastId =async(req,res)=>{
+   try {
+    const sales = await Sales.find(); 
+    console.log(sales)
+    let nextId = 1;
+    const l=sales.length
+    if (sales.length > 0) {
+      const lastId = Number(sales[l-1].id)||0;
+      nextId = lastId + 1;
+    }
+    console.log(nextId)
+    res.json({
+      nextId: nextId
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+}
+
 export const salesAdd=async(req,res)=>{
       const sales = new Sales(req.body);
   try {
@@ -34,15 +53,62 @@ export const activitiesFetch=async(req,res)=>{
 
 }
 
-export const activityAdd=async(req,res)=>{
-     const activity = new ActivitiesSales(req.body);
+export const activityAdd = async (req, res) => {
+  const { name, date, assignedPeople } = req.body;
+  
   try {
-    const savedActivity = await activity.save();
-    res.status(201).json(savedActivity);
+    const existingActivity = await ActivitiesSales.findOne({ name, date });
+    if (existingActivity) {
+      existingActivity.redemptions += 1;
+      if (assignedPeople && Array.isArray(assignedPeople)) {
+        assignedPeople.forEach(person => {
+          if (!existingActivity.assignedPeople.includes(person)) {
+            existingActivity.assignedPeople.push(person);
+          }
+        });
+      } else if (assignedPeople && typeof assignedPeople === 'string') {
+        if (!existingActivity.assignedPeople.includes(assignedPeople)) {
+          existingActivity.assignedPeople.push(assignedPeople);
+        }
+      }
+      const updatedActivity = await existingActivity.save();
+      res.status(200).json(updatedActivity);
+    } else {
+      
+      const lastActivity = await ActivitiesSales.findOne()
+        .sort({ _id: -1 })
+        .select('_id');
+      
+      let nextId = '1';
+      if (lastActivity && lastActivity._id) {
+        const lastIdNumber = parseInt(lastActivity._id);
+        nextId = (lastIdNumber + 1).toString();
+      }
+      
+      let peopleArray = [];
+      if (assignedPeople) {
+        if (Array.isArray(assignedPeople)) {
+          peopleArray = assignedPeople;
+        } else if (typeof assignedPeople === 'string') {
+          peopleArray = [assignedPeople];
+        }
+      }
+      
+      const newActivity = new ActivitiesSales({
+        _id: nextId,
+        name,
+        date,
+        redemptions: 1,
+        assignedPeople: peopleArray
+      });
+      
+      const savedActivity = await newActivity.save();
+      res.status(201).json(savedActivity);
+    }
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
-}
+};
 
 export const customerinsightFetch=async(req,res)=>{
     try {
