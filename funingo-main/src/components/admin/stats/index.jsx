@@ -23,7 +23,7 @@ import {
   IndianRupee,
   TrendingUp,
   PieChart as PieChartIcon,
-  ChevronDown, 
+  ChevronDown,
   User,
   ChevronUp,
   BarChart3,
@@ -61,7 +61,6 @@ const styles = {
   },
 };
 
-// Color schemes
 const COLORS = {
   primary: "#3B82F6",
   secondary: "#10B981",
@@ -82,13 +81,14 @@ const PIE_COLORS = [
   COLORS.pink,
 ];
 
-// Utility functions
 const formatDate = (dateStr) => {
-  return new Date(dateStr).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-  });
+  const date = new Date(dateStr);
+  const day = date.getDate();
+  const month = date.toLocaleString("en-US", { month: "short" });
+  const year = date.getFullYear();
+  return `${day} ${month} ${year}`; 
 };
+
 
 const handleExcel = async () => {
   try {
@@ -124,9 +124,9 @@ const getDateParts = (dateStr) => {
   const date = new Date(dateStr);
   return {
     year: date.getFullYear(),
-    month: date.getMonth() + 1, 
+    month: date.getMonth() + 1,
     date: date.getDate(),
-    fullDate: date.toISOString().split("T")[0], 
+    fullDate: date.toISOString().split("T")[0],
   };
 };
 
@@ -191,31 +191,28 @@ const formatMonthDisplay = (monthStr) => {
   return date.toLocaleDateString("en-US", { year: "numeric", month: "long" });
 };
 
-
-// per day data
-
 const getTodaysData = (salesData) => {
   const today = new Date().toISOString().split("T")[0]; // Get today's date in YYYY-MM-DD format
-  
+
   const todaysSales = salesData.filter((item) => {
     if (!item.date) return false;
     const itemDate = new Date(item.date).toISOString().split("T")[0];
     return itemDate === today;
   });
-  
-  const todaysRevenue = todaysSales.reduce((sum, item) => sum + (item.amount || 0), 0);
+
+  const todaysRevenue = todaysSales.reduce(
+    (sum, item) => sum + (item.amount || 0),
+    0
+  );
   const todaysOrders = todaysSales.length;
-  
+
   return {
     revenue: todaysRevenue,
     orders: todaysOrders,
-    avgOrderValue: todaysOrders > 0 ? todaysRevenue / todaysOrders : 0
+    avgOrderValue: todaysOrders > 0 ? todaysRevenue / todaysOrders : 0,
   };
 };
 
-
-
-// Components
 const StatCard = ({
   title,
   value,
@@ -451,54 +448,67 @@ const DateFilter = ({
   );
 };
 
-
-// Updated Employee Performance Card Component
 const EmployeePerformanceCard = ({ employeeData }) => {
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [expandedEmployee, setExpandedEmployee] = useState(null);
-  const [viewMode, setViewMode] = useState('overall'); // 'overall' or 'daywise'
+  const [viewMode, setViewMode] = useState("overall");
 
-  // Process employee data to get performance metrics
   const getEmployeePerformance = () => {
     if (!Array.isArray(employeeData)) return [];
 
-    return employeeData.map(employee => {
-      // Calculate total redemptions for the employee
-      const totalRedemptions = employee.activities?.reduce((sum, activity) => sum + (activity.count || 0), 0) || 0;
-      
-      // Group activities by date for day-wise view
-      const activitiesByDate = employee.activities?.reduce((acc, activity) => {
-        const date = activity.date;
-        if (!acc[date]) {
-          acc[date] = [];
-        }
-        acc[date].push(activity);
-        return acc;
-      }, {}) || {};
+    return employeeData
+      .map((employee) => {
+        // Calculate total redemptions for the employee
+        const totalRedemptions =
+          employee.activities?.reduce(
+            (sum, activity) => sum + (activity.count || 0),
+            0
+          ) || 0;
 
-      // Calculate daily totals
-      const dailyTotals = Object.entries(activitiesByDate).map(([date, activities]) => ({
-        date,
-        totalCount: activities.reduce((sum, act) => sum + (act.count || 0), 0),
-        activities: activities
-      })).sort((a, b) => new Date(b.date) - new Date(a.date));
+        const activitiesByDate =
+          employee.activities?.reduce((acc, activity) => {
+            const date = activity.date;
+            if (!acc[date]) {
+              acc[date] = [];
+            }
+            acc[date].push(activity);
+            return acc;
+          }, {}) || {};
 
-      return {
-        id: employee.empid || employee._id,
-        empid: employee.empid,
-        name: employee.name || 'Unknown Employee',
-        totalRedemptions,
-        totalActivities: employee.activities?.length || 0,
-        uniqueActivityNames: [...new Set(employee.activities?.map(act => act.name) || [])],
-        activities: employee.activities || [],
-        dailyTotals
-      };
-    }).sort((a, b) => b.totalRedemptions - a.totalRedemptions);
+        // Calculate daily totals
+        const dailyTotals = Object.entries(activitiesByDate)
+          .map(([date, activities]) => ({
+            date,
+            totalCount: activities.reduce(
+              (sum, act) => sum + (act.count || 0),
+              0
+            ),
+            activities: activities,
+          }))
+          .sort((a, b) => new Date(b.date) - new Date(a.date));
+
+        return {
+          id: employee.empid || employee._id,
+          empid: employee.empid,
+          name: employee.name || "Unknown Employee",
+          totalRedemptions,
+          totalActivities: employee.activities?.length || 0,
+          uniqueActivityNames: [
+            ...new Set(employee.activities?.map((act) => act.name) || []),
+          ],
+          activities: employee.activities || [],
+          dailyTotals,
+        };
+      })
+      .sort((a, b) => b.totalRedemptions - a.totalRedemptions);
   };
 
   const employeePerformance = getEmployeePerformance();
   const totalEmployees = employeePerformance.length;
-  const totalRedemptions = employeePerformance.reduce((sum, emp) => sum + emp.totalRedemptions, 0);
+  const totalRedemptions = employeePerformance.reduce(
+    (sum, emp) => sum + emp.totalRedemptions,
+    0
+  );
 
   const handleEmployeeClick = (employee) => {
     if (expandedEmployee === employee.id) {
@@ -516,24 +526,23 @@ const EmployeePerformanceCard = ({ employeeData }) => {
           Employee Performance
         </h3>
         <div className="flex items-center gap-4">
-          {/* View Mode Toggle */}
           <div className="flex bg-gray-100 rounded-lg p-1">
             <button
-              onClick={() => setViewMode('overall')}
+              onClick={() => setViewMode("overall")}
               className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
-                viewMode === 'overall'
-                  ? 'bg-white text-blue-600 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
+                viewMode === "overall"
+                  ? "bg-white text-blue-600 shadow-sm"
+                  : "text-gray-600 hover:text-gray-900"
               }`}
             >
               Overall
             </button>
             <button
-              onClick={() => setViewMode('daywise')}
+              onClick={() => setViewMode("daywise")}
               className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
-                viewMode === 'daywise'
-                  ? 'bg-white text-blue-600 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
+                viewMode === "daywise"
+                  ? "bg-white text-blue-600 shadow-sm"
+                  : "text-gray-600 hover:text-gray-900"
               }`}
             >
               Day-wise
@@ -552,12 +561,17 @@ const EmployeePerformanceCard = ({ employeeData }) => {
           <p className="text-sm text-gray-600">Total Employees</p>
         </div>
         <div className="bg-green-50 rounded-lg p-4 text-center">
-          <p className="text-2xl font-bold text-green-600">{totalRedemptions}</p>
+          <p className="text-2xl font-bold text-green-600">
+            {totalRedemptions}
+          </p>
           <p className="text-sm text-gray-600">Total Redemptions</p>
         </div>
         <div className="bg-purple-50 rounded-lg p-4 text-center">
           <p className="text-2xl font-bold text-purple-600">
-            {employeePerformance.reduce((sum, emp) => sum + emp.totalActivities, 0)}
+            {employeePerformance.reduce(
+              (sum, emp) => sum + emp.totalActivities,
+              0
+            )}
           </p>
           <p className="text-sm text-gray-600">Total Activities</p>
         </div>
@@ -567,9 +581,11 @@ const EmployeePerformanceCard = ({ employeeData }) => {
       <div className="space-y-3 max-h-96 overflow-y-auto">
         {employeePerformance.length > 0 ? (
           employeePerformance.map((employee, index) => (
-            <div key={employee.id} className="border border-gray-200 rounded-lg">
-              {/* Employee Header */}
-              <div 
+            <div
+              key={employee.id}
+              className="border border-gray-200 rounded-lg"
+            >
+              <div
                 className="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50 transition-colors"
                 onClick={() => handleEmployeeClick(employee)}
               >
@@ -578,13 +594,15 @@ const EmployeePerformanceCard = ({ employeeData }) => {
                     <User className="w-4 h-4 text-blue-600" />
                   </div>
                   <div>
-                    <h4 className="font-medium text-gray-900">{employee.name}</h4>
+                    <h4 className="font-medium text-gray-900">
+                      {employee.name}
+                    </h4>
                     <p className="text-xs text-gray-500">
                       ID: {employee.empid} • Rank #{index + 1}
                     </p>
                   </div>
                 </div>
-                
+
                 <div className="flex items-center gap-3">
                   <div className="text-right">
                     <p className="font-semibold text-blue-600">
@@ -612,32 +630,34 @@ const EmployeePerformanceCard = ({ employeeData }) => {
                 </div>
               </div>
 
-              {/* Expanded Details */}
               {expandedEmployee === employee.id && (
                 <div className="border-t border-gray-200 bg-gray-50">
                   <div className="p-4">
-                    {viewMode === 'overall' ? (
+                    {viewMode === "overall" ? (
                       // Overall Activity View
                       <div>
                         <h5 className="text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
                           <Activity className="w-4 h-4" />
-                          Activity Breakdown ({employee.totalActivities} activities)
+                          Activity Breakdown ({employee.totalActivities}{" "}
+                          activities)
                         </h5>
-                        
+
                         {employee.activities.length > 0 ? (
                           <div className="space-y-2 max-h-48 overflow-y-auto">
                             {employee.activities.map((activity, actIndex) => (
-                              <div 
+                              <div
                                 key={`${activity._id || actIndex}-${actIndex}`}
                                 className="flex items-center justify-between py-2 px-3 bg-white rounded border"
                               >
                                 <div className="flex-1">
                                   <span className="text-sm text-gray-700 font-medium block">
-                                    {activity.name || 'Unknown Activity'}
+                                    {activity.name || "Unknown Activity"}
                                   </span>
                                   {activity.date && (
                                     <span className="text-xs text-gray-500">
-                                      {new Date(activity.date).toLocaleDateString()}
+                                      {new Date(
+                                        activity.date
+                                      ).toLocaleDateString()}
                                     </span>
                                   )}
                                 </div>
@@ -658,42 +678,55 @@ const EmployeePerformanceCard = ({ employeeData }) => {
                       <div>
                         <h5 className="text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
                           <CalendarDays className="w-4 h-4" />
-                          Day-wise Performance ({employee.dailyTotals.length} days)
+                          Day-wise Performance ({
+                            employee.dailyTotals.length
+                          }{" "}
+                          days)
                         </h5>
-                        
+
                         {employee.dailyTotals.length > 0 ? (
                           <div className="space-y-3 max-h-48 overflow-y-auto">
                             {employee.dailyTotals.map((dayData, dayIndex) => (
-                              <div key={`${dayData.date}-${dayIndex}`} className="bg-white rounded border p-3">
+                              <div
+                                key={`${dayData.date}-${dayIndex}`}
+                                className="bg-white rounded border p-3"
+                              >
                                 <div className="flex items-center justify-between mb-2">
                                   <span className="text-sm font-medium text-gray-700">
-                                    {new Date(dayData.date).toLocaleDateString('en-US', {
-                                      weekday: 'short',
-                                      month: 'short',
-                                      day: 'numeric',
-                                      year: 'numeric'
-                                    })}
+                                    {new Date(dayData.date).toLocaleDateString(
+                                      "en-US",
+                                      {
+                                        weekday: "short",
+                                        month: "short",
+                                        day: "numeric",
+                                        year: "numeric",
+                                      }
+                                    )}
                                   </span>
                                   <span className="text-sm font-semibold text-blue-600">
                                     {dayData.totalCount} total redemptions
                                   </span>
                                 </div>
-                                
+
                                 {/* Activities for this day */}
                                 <div className="space-y-1">
-                                  {dayData.activities.map((activity, actIndex) => (
-                                    <div 
-                                      key={`${activity._id || actIndex}-day-${actIndex}`}
-                                      className="flex items-center justify-between py-1 px-2 bg-gray-50 rounded text-xs"
-                                    >
-                                      <span className="text-gray-600">
-                                        {activity.name || 'Unknown Activity'}
-                                      </span>
-                                      <span className="font-medium text-green-600">
-                                        {activity.count || 0}
-                                      </span>
-                                    </div>
-                                  ))}
+                                  {dayData.activities.map(
+                                    (activity, actIndex) => (
+                                      <div
+                                        key={`${
+                                          activity._id || actIndex
+                                        }-day-${actIndex}`}
+                                        className="flex items-center justify-between py-1 px-2 bg-gray-50 rounded text-xs"
+                                      >
+                                        <span className="text-gray-600">
+                                          {activity.name || "Unknown Activity"}
+                                        </span>
+                                        <span className="font-medium text-green-600">
+                                          {activity.count || 0}
+                                        </span>
+                                      </div>
+                                    )
+                                  )}
                                 </div>
                               </div>
                             ))}
@@ -724,33 +757,44 @@ const EmployeePerformanceCard = ({ employeeData }) => {
       </div>
 
       {/* Top Performer Highlight */}
-      {employeePerformance.length > 0 && employeePerformance[0].totalRedemptions > 0 && (
-        <div className="mt-6 p-4 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-lg border border-yellow-200">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="w-6 h-6 bg-yellow-500 rounded-full flex items-center justify-center">
-              <span className="text-white text-xs font-bold">👑</span>
+      {employeePerformance.length > 0 &&
+        employeePerformance[0].totalRedemptions > 0 && (
+          <div className="mt-6 p-4 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-lg border border-yellow-200">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-6 h-6 bg-yellow-500 rounded-full flex items-center justify-center">
+                <span className="text-white text-xs font-bold">👑</span>
+              </div>
+              <span className="text-sm font-medium text-yellow-800">
+                Top Performer
+              </span>
             </div>
-            <span className="text-sm font-medium text-yellow-800">Top Performer</span>
+            <p className="text-sm text-gray-700">
+              <span className="font-semibold">
+                {employeePerformance[0].name}
+              </span>{" "}
+              leads with{" "}
+              <span className="font-semibold text-yellow-700">
+                {employeePerformance[0].totalRedemptions} redemptions
+              </span>{" "}
+              across {employeePerformance[0].totalActivities} activities
+            </p>
           </div>
-          <p className="text-sm text-gray-700">
-            <span className="font-semibold">{employeePerformance[0].name}</span> leads with{' '}
-            <span className="font-semibold text-yellow-700">
-              {employeePerformance[0].totalRedemptions} redemptions
-            </span>
-            {' '}across {employeePerformance[0].totalActivities} activities
-          </p>
-        </div>
-      )}
+        )}
 
       {/* Performance Distribution Chart */}
       {employeePerformance.length > 0 && (
         <div className="mt-6">
-          <h4 className="text-sm font-semibold text-gray-700 mb-3">Performance Distribution</h4>
+          <h4 className="text-sm font-semibold text-gray-700 mb-3">
+            Performance Distribution
+          </h4>
           <div className="space-y-2">
             {employeePerformance.slice(0, 5).map((employee, index) => {
               const maxRedemptions = employeePerformance[0].totalRedemptions;
-              const percentage = maxRedemptions > 0 ? (employee.totalRedemptions / maxRedemptions) * 100 : 0;
-              
+              const percentage =
+                maxRedemptions > 0
+                  ? (employee.totalRedemptions / maxRedemptions) * 100
+                  : 0;
+
               return (
                 <div key={employee.id} className="flex items-center gap-3">
                   <div className="w-20 text-xs text-gray-600 truncate">
@@ -775,20 +819,21 @@ const EmployeePerformanceCard = ({ employeeData }) => {
   );
 };
 
-
 // for present day data
 const TodaysStatsCard = ({ salesData }) => {
   const todaysData = getTodaysData(salesData);
-  
+
   return (
     <div className="bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl shadow-lg p-6 text-white">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold">Today's Performance</h3>
       </div>
-      
+
       <div className="grid grid-cols-3 gap-4">
         <div className="text-center">
-          <p className="text-2xl font-bold">{formatCurrency(todaysData.revenue)}</p>
+          <p className="text-2xl font-bold">
+            {formatCurrency(todaysData.revenue)}
+          </p>
           <p className="text-sm opacity-80">Revenue</p>
         </div>
         <div className="text-center">
@@ -796,18 +841,20 @@ const TodaysStatsCard = ({ salesData }) => {
           <p className="text-sm opacity-80">Orders</p>
         </div>
         <div className="text-center">
-          <p className="text-2xl font-bold">{formatCurrency(todaysData.avgOrderValue)}</p>
+          <p className="text-2xl font-bold">
+            {formatCurrency(todaysData.avgOrderValue)}
+          </p>
           <p className="text-sm opacity-80">Avg Order</p>
         </div>
       </div>
-      
+
       <div className="mt-4 pt-4 border-t border-white/20">
         <p className="text-sm opacity-80">
-          {new Date().toLocaleDateString("en-US", { 
-            weekday: "long", 
-            year: "numeric", 
-            month: "long", 
-            day: "numeric" 
+          {new Date().toLocaleDateString("en-US", {
+            weekday: "long",
+            year: "numeric",
+            month: "long",
+            day: "numeric",
           })}
         </p>
       </div>
@@ -815,42 +862,40 @@ const TodaysStatsCard = ({ salesData }) => {
   );
 };
 
-
-
-
 const PaymentAnalyticsCard = ({ salesData }) => {
-  
   const normalizeDate = (dateString) => {
     if (!dateString) return null;
-    
+
     let date;
-    if (dateString.includes('/')) {
-      const parts = dateString.split('/');
+    if (dateString.includes("/")) {
+      const parts = dateString.split("/");
       if (parts.length === 3) {
-        const month = parts[0].padStart(2, '0');
-        const day = parts[1].padStart(2, '0');
+        const month = parts[0].padStart(2, "0");
+        const day = parts[1].padStart(2, "0");
         const year = parts[2];
         date = new Date(`${year}-${month}-${day}`);
       }
     } else {
-      
       date = new Date(dateString);
     }
-    
+
     if (isNaN(date.getTime())) return null;
-    
+
     return date.toISOString().split("T")[0];
   };
-  
+
   const today = new Date().toISOString().split("T")[0];
-  
+
   const extractPaymentTypes = (paymentTypeString) => {
     if (!paymentTypeString) return [];
-    
-    const types = paymentTypeString.trim().split(/\s+/).filter(type => type);
-    return types.map(type => type.toLowerCase());
+
+    const types = paymentTypeString
+      .trim()
+      .split(/\s+/)
+      .filter((type) => type);
+    return types.map((type) => type.toLowerCase());
   };
-  
+
   // Calculate today's payment breakdown
   const getTodaysPaymentBreakdown = () => {
     const todaysSales = salesData.filter((item) => {
@@ -858,137 +903,158 @@ const PaymentAnalyticsCard = ({ salesData }) => {
       const normalizedDate = normalizeDate(item.Date);
       return normalizedDate === today;
     });
-    
+
     const breakdown = {
       cash: 0,
       card: 0,
       online: 0,
     };
-    
-    todaysSales.forEach(item => {
+
+    todaysSales.forEach((item) => {
       const amount = parseFloat(item.amount) || 0;
       const cashAmount = parseFloat(item.CashAmount) || 0;
       const onlineAmount = parseFloat(item.OnlineAmount) || 0;
       const paymentTypes = extractPaymentTypes(item.paymentType);
-      
+
       const paymentTypeStr = item.paymentType?.trim().toLowerCase();
-      if (paymentTypeStr === 'cash online') {
+      if (paymentTypeStr === "cash online") {
         breakdown.cash += cashAmount;
         breakdown.online += onlineAmount;
       } else {
-        paymentTypes.forEach(type => {
-          if (type === 'cash') breakdown.cash += amount;
-          else if (type === 'card') breakdown.card += amount;
-          else if (type === 'online') breakdown.online += amount;
+        paymentTypes.forEach((type) => {
+          if (type === "cash") breakdown.cash += amount;
+          else if (type === "card") breakdown.card += amount;
+          else if (type === "online") breakdown.online += amount;
         });
       }
     });
-    
+
     return breakdown;
   };
-  
+
   const getOverallPaymentBreakdown = () => {
     const breakdown = {
       cash: 0,
       card: 0,
-      online: 0
+      online: 0,
     };
-    
-    salesData.forEach(item => {
+
+    salesData.forEach((item) => {
       const amount = parseFloat(item.amount) || 0;
       const cashAmount = parseFloat(item.CashAmount) || 0;
       const onlineAmount = parseFloat(item.OnlineAmount) || 0;
       const paymentTypes = extractPaymentTypes(item.paymentType);
-      
+
       const paymentTypeStr = item.paymentType?.trim().toLowerCase();
-      if (paymentTypeStr === 'cash online') {
+      if (paymentTypeStr === "cash online") {
         breakdown.cash += cashAmount;
         breakdown.online += onlineAmount;
       } else {
-        paymentTypes.forEach(type => {
-          if (type === 'cash') breakdown.cash += amount;
-          else if (type === 'card') breakdown.card += amount;
-          else if (type === 'online') breakdown.online += amount;
+        paymentTypes.forEach((type) => {
+          if (type === "cash") breakdown.cash += amount;
+          else if (type === "card") breakdown.card += amount;
+          else if (type === "online") breakdown.online += amount;
         });
       }
     });
-    
+
     return breakdown;
   };
-  
+
   const todaysBreakdown = getTodaysPaymentBreakdown();
   const overallBreakdown = getOverallPaymentBreakdown();
-  
+
   const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR'
+    return new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR",
     }).format(amount);
   };
-  
+
   return (
     <div className="bg-gradient-to-r from-purple-500 to-indigo-600 rounded-xl shadow-lg p-6 text-white">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold">Payment Analytics</h3>
         <div className="flex items-center gap-1">
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+          <svg
+            className="w-6 h-6"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
+            />
           </svg>
         </div>
       </div>
-      
+
       {/* Today's Breakdown */}
       <div className="mb-6">
         <h4 className="text-sm font-medium mb-3 opacity-90">Today's Revenue</h4>
         <div className="grid grid-cols-3 gap-3">
           <div className="text-center bg-white/10 rounded-lg p-3">
-            <p className="text-xl font-bold">{formatCurrency(todaysBreakdown.cash)}</p>
+            <p className="text-xl font-bold">
+              {formatCurrency(todaysBreakdown.cash)}
+            </p>
             <p className="text-xs opacity-80">Cash</p>
           </div>
           <div className="text-center bg-white/10 rounded-lg p-3">
-            <p className="text-xl font-bold">{formatCurrency(todaysBreakdown.card)}</p>
+            <p className="text-xl font-bold">
+              {formatCurrency(todaysBreakdown.card)}
+            </p>
             <p className="text-xs opacity-80">Card</p>
           </div>
           <div className="text-center bg-white/10 rounded-lg p-3">
-            <p className="text-xl font-bold">{formatCurrency(todaysBreakdown.online)}</p>
+            <p className="text-xl font-bold">
+              {formatCurrency(todaysBreakdown.online)}
+            </p>
             <p className="text-xs opacity-80">Online</p>
           </div>
         </div>
       </div>
-      
+
       {/* Overall Breakdown */}
       <div className="border-t border-white/20 pt-4">
         <h4 className="text-sm font-medium mb-3 opacity-90">Overall Revenue</h4>
         <div className="grid grid-cols-3 gap-3">
           <div className="text-center">
-            <p className="text-lg font-bold">{formatCurrency(overallBreakdown.cash)}</p>
+            <p className="text-lg font-bold">
+              {formatCurrency(overallBreakdown.cash)}
+            </p>
             <p className="text-xs opacity-80">Cash</p>
           </div>
           <div className="text-center">
-            <p className="text-lg font-bold">{formatCurrency(overallBreakdown.card)}</p>
+            <p className="text-lg font-bold">
+              {formatCurrency(overallBreakdown.card)}
+            </p>
             <p className="text-xs opacity-80">Card</p>
           </div>
           <div className="text-center">
-            <p className="text-lg font-bold">{formatCurrency(overallBreakdown.online)}</p>
+            <p className="text-lg font-bold">
+              {formatCurrency(overallBreakdown.online)}
+            </p>
             <p className="text-xs opacity-80">Online</p>
           </div>
         </div>
       </div>
-      
+
       <div className="mt-4 pt-4 border-t border-white/20">
         <p className="text-sm opacity-80">
-          {new Date().toLocaleDateString("en-US", { 
-            weekday: "long", 
-            year: "numeric", 
-            month: "long", 
-            day: "numeric" 
+          {new Date().toLocaleDateString("en-US", {
+            weekday: "long",
+            year: "numeric",
+            month: "long",
+            day: "numeric",
           })}
         </p>
       </div>
     </div>
   );
 };
-
 
 const ChartCard = ({ title, children, className = "" }) => (
   <div className={`bg-white rounded-xl shadow-lg p-6 ${className}`}>
@@ -1035,9 +1101,7 @@ const ErrorMessage = ({ message, onRetry }) => (
   </div>
 );
 
-// Main Dashboard Component
 const Stats = () => {
-  // State management
   const [salesData, setSalesData] = useState([]);
   const [transactionData, setTransactionData] = useState([]);
   const [activitiesData, setActivitiesData] = useState([]);
@@ -1071,55 +1135,61 @@ const Stats = () => {
         params.dateFilter = dateFilter;
       }
 
-      // Parallel API calls for better performance
-      const [salesResponse, activitiesResponse, insightsResponse,employeeResponse,transactionResponse] =
-        await Promise.all([
-          axios.get(`${apiUrl}/insights/salesfetch`, { params }),
-          axios.get(`${apiUrl}/insights/activityfetch`, { params }),
-          axios.get(`${apiUrl}/insights/customerinsightfetch`, { params }),
-          axios.get(`${apiUrl}/insights/employeefetch`, { params }),
-          axios.get(`${apiUrl}/bill/billfetch`, { params }),
-        ]);
-     
+      const [
+        salesResponse,
+        activitiesResponse,
+        insightsResponse,
+        employeeResponse,
+        transactionResponse,
+      ] = await Promise.all([
+        axios.get(`${apiUrl}/insights/salesfetch`, { params }),
+        axios.get(`${apiUrl}/insights/activityfetch`, { params }),
+        axios.get(`${apiUrl}/insights/customerinsightfetch`, { params }),
+        axios.get(`${apiUrl}/insights/employeefetch`, { params }),
+        axios.get(`${apiUrl}/bill/billfetch`, { params }),
+      ]);
+
       // Set data with proper validation
       const salesDataArray = Array.isArray(salesResponse.data)
         ? salesResponse.data
         : [];
-      const transactionDataArray = Array.isArray(transactionResponse.data.data) 
-      ? transactionResponse.data.data 
-      : [];
+      const transactionDataArray = Array.isArray(transactionResponse.data.data)
+        ? transactionResponse.data.data
+        : [];
       const activitiesDataArray = Array.isArray(activitiesResponse.data)
         ? activitiesResponse.data
         : [];
-        const employeeDataArray = Array.isArray(employeeResponse.data)
-      ? employeeResponse.data
-      : [];
-        console.log(transactionResponse.data,"i am in transactiondataarray")
+      const employeeDataArray = Array.isArray(employeeResponse.data)
+        ? employeeResponse.data
+        : [];
+      console.log(transactionResponse.data, "i am in transactiondataarray");
       setSalesData(salesDataArray);
-      setTransactionData(transactionDataArray)
+      setTransactionData(transactionDataArray);
       setActivitiesData(activitiesDataArray);
-      setEmployeeData(employeeDataArray); 
+      setEmployeeData(employeeDataArray);
       setAvailableYears(getUniqueYears(salesDataArray));
       setAvailableMonths(getUniqueMonths(salesDataArray));
 
       // Handle customer insights data structure
-    const insights = insightsResponse.data;
-const insightData = insights[0] || {}; // Get the first object from the array
+      const insights = insightsResponse.data;
+      const insightData = insights[0] || {};
 
-setCustomerInsights({
-  popularPackages: Array.isArray(insightData.popularPackages)
-    ? insightData.popularPackages
-    : [],
-  ageGroups: Array.isArray(insightData.ageGroups) 
-    ? insightData.ageGroups 
-    : [],
-  repeatRate: typeof insightData.repeatRate === "number" 
-    ? insightData.repeatRate 
-    : 0,
-  avgOrderValue: typeof insightData.avgOrderValue === "number"
-    ? insightData.avgOrderValue
-    : 0,
-});
+      setCustomerInsights({
+        popularPackages: Array.isArray(insightData.popularPackages)
+          ? insightData.popularPackages
+          : [],
+        ageGroups: Array.isArray(insightData.ageGroups)
+          ? insightData.ageGroups
+          : [],
+        repeatRate:
+          typeof insightData.repeatRate === "number"
+            ? insightData.repeatRate
+            : 0,
+        avgOrderValue:
+          typeof insightData.avgOrderValue === "number"
+            ? insightData.avgOrderValue
+            : 0,
+      });
     } catch (error) {
       console.error("Error fetching data:", error);
       setError(
@@ -1260,7 +1330,6 @@ setCustomerInsights({
     return acc;
   }, []);
 
-
   // Top activities by redemptions (with date filtering)
   const topActivities = [...dateFilteredActivitiesData]
     .sort((a, b) => (b.redemptions || 0) - (a.redemptions || 0))
@@ -1281,7 +1350,6 @@ setCustomerInsights({
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
       <div className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="py-6">
@@ -1314,7 +1382,6 @@ setCustomerInsights({
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Date Filter Section */}
         <DateFilter
           filterType={dateFilterType}
           setFilterType={setDateFilterType}
@@ -1353,15 +1420,14 @@ setCustomerInsights({
           </div>
         )}
 
-       <div className="mb-10"> 
-        <TodaysStatsCard salesData={salesData} />
-       </div>
+        <div className="mb-10">
+          <TodaysStatsCard salesData={salesData} />
+        </div>
 
-       <div className="mb-10"> 
-        {console.log(transactionData,"in ttttttt")}
-         <PaymentAnalyticsCard salesData={transactionData} />
-       </div>
-        
+        <div className="mb-10">
+          {console.log(transactionData, "in ttttttt")}
+          <PaymentAnalyticsCard salesData={transactionData} />
+        </div>
 
         {/* Key Metrics */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -1390,12 +1456,11 @@ setCustomerInsights({
             color={COLORS.purple}
           />
         </div>
- 
-        
-       {/* Employee Performance */}
-{employeeData.length > 0 && (
-  <EmployeePerformanceCard employeeData={employeeData} />
-)}
+
+        {/* Employee Performance */}
+        {employeeData.length > 0 && (
+          <EmployeePerformanceCard employeeData={employeeData} />
+        )}
 
         {/* Customer Insights Section */}
         {(customerInsights.ageGroups.length > 0 ||
@@ -1654,19 +1719,22 @@ setCustomerInsights({
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {filteredSalesData.slice(0, 5).map((item) => (
-                      <tr key={item._id} className="hover:bg-gray-50">
-                        <td className="px-4 py-3 text-sm text-gray-900">
-                          {formatDate(item.date)}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-900">
-                          {item.section || "N/A"}
-                        </td>
-                        <td className="px-4 py-3 text-sm font-medium text-green-600">
-                          {formatCurrency(item.amount || 0)}
-                        </td>
-                      </tr>
-                    ))}
+                    {[...filteredSalesData]
+                      .sort((a, b) => new Date(b.date) - new Date(a.date))
+                      .slice(0, 10)
+                      .map((item) => (
+                        <tr key={item._id} className="hover:bg-gray-50">
+                          <td className="px-4 py-3 text-sm text-gray-900">
+                            {formatDate(item.date)}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-900">
+                            {item.section || "N/A"}
+                          </td>
+                          <td className="px-4 py-3 text-sm font-medium text-green-600">
+                            {formatCurrency(item.amount || 0)}
+                          </td>
+                        </tr>
+                      ))}
                   </tbody>
                 </table>
               </div>
@@ -1703,7 +1771,7 @@ setCustomerInsights({
           )}
 
           {/* Customer Package Preferences */}
-          {console.log(customerInsights,"i am gere")}
+          {console.log(customerInsights, "i am gere")}
           {customerInsights.popularPackages.length > 0 && (
             <ChartCard title="Package Performance">
               <div className="space-y-3">
