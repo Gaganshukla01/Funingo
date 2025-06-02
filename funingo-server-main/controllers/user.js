@@ -435,3 +435,45 @@ export const getTransactions = async (req, res) => {
 
   res.status(200).send({ success: true, transactions });
 };
+
+
+export const getUserNameByPhone = async (req,res) => {
+ let { phone_no } = req.params;
+ console.log(phone_no,"phone")
+if(phone_no.substring(0,4) !== "+91-"){
+   phone_no = "+91-" + phone_no;
+}
+  const user = await User.findOne({ phone_no });
+  if (!user) {
+    throw new ExpressError("User not found", 404);
+  }
+
+  res.status(200).json({
+    success: true,
+    name: (user?.first_name || "") + " " + (user?.last_name || ""),
+  });
+};
+
+export const updateUserType = async (req, res) => {
+  let { phone_no, user_type , emp_id } = req.body;
+  if(phone_no.substring(0,4) !== "+91-"){
+   phone_no = "+91-" + phone_no;
+}
+  
+  const user = await User.findOne({ phone_no });
+  
+  if (!user) {
+    throw new ExpressError("User not found", 404);
+  }
+
+  const updatedUser = await User.findByIdAndUpdate(
+    user._id,
+    { user_type , emp_id},
+    { runValidators: true, new: true }
+  );
+
+  res.status(200).send({
+    success: true,
+    user: { ...updatedUser.toJSON(), hash_password: undefined },
+  });
+};

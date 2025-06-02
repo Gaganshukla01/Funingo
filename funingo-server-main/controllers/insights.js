@@ -130,50 +130,85 @@ export const customerinsightAdd=async(req,res)=>{
 }
 
 
+// export const employeeAdd = async (req, res) => {
+//   try {
+//     const { empid, name, date, activity } = req.body;
+//     console.log({ empid, name, activity, date });
+
+//     const inputDate = new Date(date).toISOString().split('T')[0];
+
+//     let employee = await EmployeeModel.findOne({ empid });
+
+//     if (!employee) {
+      
+//       employee = new EmployeeModel({
+//         empid,
+//         name,
+//         activities: [{ name: activity, count: 1, date: inputDate }],
+//       });
+//     } else {
+  
+//       const activityIndex = employee.activities.findIndex(
+//         (a) => a.name === activity && a.date === inputDate
+//       );
+
+//       if (activityIndex !== -1) {
+//         // Increment count if found
+//         employee.activities[activityIndex].count += 1;
+//       } else {
+//         // Add new activity for that date
+//         employee.activities.push({ name: activity, count: 1, date: inputDate });
+//       }
+//     }
+
+//     await employee.save();
+//     res.json(employee);
+//   } catch (error) {
+//     console.error('Error adding activity:', error);
+//     res.status(500).json({ error: 'Internal Server Error' });
+//   }
+// };
+
 export const employeeAdd = async (req, res) => {
   try {
-    const { empid, name, date, activity } = req.body;
-    console.log({ empid, name, activity, date });
-
-    if (!name || !activity || !empid || !date) {
-      return res.status(400).json({ error: 'Employee ID, name, activity, and date are required' });
-    }
-
-    
-    const inputDate = new Date(date).toISOString().split('T')[0];
-
-    let employee = await EmployeeModel.findOne({ empid });
-
-    if (!employee) {
-      // Create new employee and add activity with date
-      employee = new EmployeeModel({
-        empid,
-        name,
-        activities: [{ name: activity, count: 1, date: inputDate }],
+    const { name , phone} = req.body;
+    const existingEmployee = await EmployeeModel.findOne({ phone });
+    if (existingEmployee) {
+      return res.status(400).json({
+        success: false,
+        message: "User already exists"
       });
-    } else {
-      // Look for activity with same name and date
-      const activityIndex = employee.activities.findIndex(
-        (a) => a.name === activity && a.date === inputDate
-      );
-
-      if (activityIndex !== -1) {
-        // Increment count if found
-        employee.activities[activityIndex].count += 1;
-      } else {
-        // Add new activity for that date
-        employee.activities.push({ name: activity, count: 1, date: inputDate });
-      }
     }
+    const lastEmployee = await EmployeeModel.findOne().sort({ empid: -1 }).limit(1);
+  
+  let nextEmpid;
+  
+  if (lastEmployee && lastEmployee.empid) {
+    
+    const numericPart = parseInt(lastEmployee.empid.replace('E', ''));
+   
+    nextEmpid = `E${numericPart + 1}`;
+  } else {
+    nextEmpid = 'E1';
+  }
+    const newEmployeeData = {
+      empid: nextEmpid,
+      name,
+      phone,
+      activities: [],
+    };
 
-    await employee.save();
-    res.json(employee);
+    const newEmployee = new EmployeeModel(newEmployeeData);
+
+    await newEmployee.save();
+
+    res.json(newEmployee);
+
   } catch (error) {
-    console.error('Error adding activity:', error);
+    console.error('Error adding new employee:', error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 };
-
 
 
 
