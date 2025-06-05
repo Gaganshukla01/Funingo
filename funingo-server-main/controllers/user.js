@@ -105,6 +105,7 @@ export const fetchSelf = async (req, res) => {
     success: true,
     user: { ...user.toJSON(), hash_password: undefined },
   });
+  console.log(user)
 };
 
 export const forgetPassword = async (req, res) => {
