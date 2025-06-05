@@ -434,10 +434,9 @@ const RedeemTicket = () => {
 
   const redeemTicket = async () => {
     try {
-      // console.log("current yellow" , flag.yellow  + "input value coming" , inputValue)
+    
       console.log(inputValue);
       if (existingFuningoMoney - inputValue >= 0) {
-        // console.log("current yellow now" , flag.yellow  + "input value " , inputValue)
         setError("");
         setSuccess(false);
         const res = await axios.post(
