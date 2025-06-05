@@ -49,12 +49,16 @@ import Register from "./components/auth/signup";
 import { getFreebies } from "./actions/ticket";
 import { openPremiumSubscriptionModal } from "./utils/store/slice/appSlice";
 import Policy from "./components/policies";
+import EmployeeManagementForms from "./components/employee/employee-add";
+import { ToastContainer, toast } from 'react-toastify';
 
 const App = () => {
   return (
     <Provider store={store}>
       <ThemeProvider theme={theme}>
+        <ToastContainer/>
         <Outlet />
+        
       </ThemeProvider>
     </Provider>
   );
@@ -283,6 +287,10 @@ export const router = createBrowserRouter([
           {
             path:"dataforms",
             element:<DataForms/>,
+          },
+          {
+            path:"empoyeestats",
+            element:<EmployeeManagementForms/>,
           }
         ],
       },

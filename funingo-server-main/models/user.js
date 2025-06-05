@@ -63,6 +63,10 @@ const userSchema = new mongoose.Schema(
       default: "customer",
     },
 
+    emp_id:{
+      type:String,
+      default:"NA"
+    },
     premium: [
       {
         expires_on: {

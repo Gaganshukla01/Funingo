@@ -8,6 +8,7 @@ import constants from "../../constants.js";
 import { calculateDiscountPrice } from "../../utilities/utils.js";
 import Activity from "../../models/activity.js";
 import Transaction from "../../models/transaction.js";
+import { error } from "console";
 
 export const bookTicket = async (req, res) => {
   let {
@@ -169,4 +170,30 @@ export const addComplementaryCoins = async (req, res) => {
   user.funingo_money += coins;
   await user.save();
   res.status(200).send({ success: true, coins: user.funingo_money });
+};
+
+export const addActivity=async(req,res)=>{
+  try{
+    const {name,coins_required}=req.body;
+    if(!name && !coins_required){
+      return res.json({success:false,message:"Please Enter Details"})
+    }
+
+    const activity=new Activity({name:name,coins_required:coins_required})
+    await activity.save()
+    return res.json({success:true,message:activity})
+  }
+  catch{
+  return res.json({success:false,message:error})
+  }
+}
+
+export const activityFetch=async (req, res) => {
+  try {
+    const activities = await Activity.find();
+    res.json(activities);
+  } catch (error) {
+    console.error('Error fetching activities:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 };
