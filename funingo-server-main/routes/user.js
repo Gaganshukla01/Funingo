@@ -8,6 +8,7 @@ import {
   validateAndUpdatePassword,
   updateUser,
   getFreebies,
+  getAllusers,
   getFuningoCoinsFromPhnNo,
   createPremiumOrder,
   verifyPremiumPayment,
@@ -15,6 +16,7 @@ import {
   verifyAddFuningoMoneyPayment,
   getTransactions,
   updateUserType,
+  historyAdd,
   getUserNameByPhone,
 } from "../controllers/user.js";
 import { authenticateEmployee, authenticateUser } from "../middleware.js";
@@ -26,7 +28,10 @@ router
   .get(authenticateUser, catchAsync(fetchSelf))
   .put(authenticateUser, catchAsync(updateUser));
 
+
+router.route("/getallusers").get(authenticateUser,getAllusers)
 router.route("/getloginUser").get(authenticateUser,fetchSelf);
+router.route("/addhistory").put(authenticateUser,historyAdd);
 router.route("/login").post(catchAsync(loginUser));
 router.route("/forget-password").post(catchAsync(forgetPassword));
 router.route("/getusername/:phone_no").get(catchAsync(getUserNameByPhone));

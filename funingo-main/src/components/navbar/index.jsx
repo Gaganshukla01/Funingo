@@ -347,6 +347,22 @@ const Navbar = () => {
             <></>
             }
 
+            {/* usertransection */}
+             {admin?
+            (<Button
+              onClick={() => {
+                navigate("/admin/userdash");
+                scrollToTop();
+              }}
+              sx={{ fontWeight: "600", color: "#2474D2", height: "100%" }}
+              className="navText"
+            >
+             History
+            </Button>):
+            <></>
+            }
+
+
             {windowEmployee ? (
               <Button
                 onClick={() => {
