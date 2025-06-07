@@ -26,7 +26,7 @@ const ticketSchema = new mongoose.Schema(
       },
     ],
     premium_types: {
-      type: String, // 50%-6_months | 50%-1_year | 50%-100_years | null
+      type: String, 
       default: null,
     },
     total_amount: Number,
@@ -37,7 +37,6 @@ const ticketSchema = new mongoose.Schema(
       required: false,
     },
     Cash_amount:Number,
-    
     
     user: {
       type: mongoose.Schema.Types.ObjectId,

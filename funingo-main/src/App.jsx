@@ -50,6 +50,7 @@ import { getFreebies } from "./actions/ticket";
 import { openPremiumSubscriptionModal } from "./utils/store/slice/appSlice";
 import Policy from "./components/policies";
 import EmployeeManagementForms from "./components/employee/employee-add";
+import UserCardsDashboard from "./components/user-track/usertrack";
 import { ToastContainer, toast } from 'react-toastify';
 
 const App = () => {
@@ -291,6 +292,10 @@ export const router = createBrowserRouter([
           {
             path:"empoyeestats",
             element:<EmployeeManagementForms/>,
+          },
+          {
+            path:"userdash",
+            element:<UserCardsDashboard/>,
           }
         ],
       },

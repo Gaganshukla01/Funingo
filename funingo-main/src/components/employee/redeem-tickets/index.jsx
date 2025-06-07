@@ -15,12 +15,14 @@ import { useLocation } from "react-router-dom";
 import { yellow } from "@mui/material/colors";
 import "./stylees.css";
 import Coin from "../../admin/Coin";
+import { ToastContainer, toast } from "react-toastify";
 
 const RedeemTicket = () => {
   const [selectedColor, setSelectedColor] = useState("");
   const [phoneNo, setPhoneNo] = useState("");
   const { token } = useSelector((state) => state.userSlice);
   const [ticket, setTicket] = useState({});
+  const [activities, setActivities] = useState([]);
   const [existingFuningoMoney, setExistingFuningoMoney] = useState(0);
   const [flag, setFlag] = useState({
     red: 0,
@@ -54,13 +56,8 @@ const RedeemTicket = () => {
 
   useEffect(() => {
     // console.log("Updated inputValue:", inputValue);
-   
   }, [inputValue]);
 
-  // const handleSubmit = () => {
-  //   console.log('Value entered by the user:', inputValue);
-  //   // You can use the value entered by the user for any further processing
-  // };
   const { search } = useLocation();
   const params = new URLSearchParams(search);
 
@@ -68,7 +65,6 @@ const RedeemTicket = () => {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [activityBookings, setActivityBookings] = useState(0);
-
 
   // const handleFind = async (phoneNo) => {
   //   try {
@@ -82,6 +78,15 @@ const RedeemTicket = () => {
   //     setError1(err.response.data);
   //   }
   // };
+
+  async function fetchActivities() {
+    try {
+      const resActivity = await axios.get(`${apiUrl}/activity/activityfetch`);
+      setActivities(resActivity.data);
+    } catch (error) {
+      toast.error(error.message, error);
+    }
+  }
 
   async function fetchFuningoMoney(phoneNo) {
     try {
@@ -122,14 +127,12 @@ const RedeemTicket = () => {
       }
       setActivityBookings(response.data.bookings);
     } catch (error) {
-      console.log(error.message, error);
+      toast.error(error.message, error);
     } finally {
     }
   }
-
   const redeemTicket = async () => {
     try {
-    
       console.log(inputValue);
       if (existingFuningoMoney - inputValue >= 0) {
         setError("");
@@ -148,36 +151,82 @@ const RedeemTicket = () => {
             },
           }
         );
-    //      const currentUser = await axios.get(`${apiUrl}/user`) 
-    //  console.log(currentUser,"i am here to check")
 
-         // activitiy sales dashboard data add
-         const getCurrentDateYYYYMMDD = () => {
+        const employeeUser = await axios.get(`${apiUrl}/user/`, {
+          headers: {
+            token: token,
+            "Content-Type": "application/json",
+          },
+        });
+        const redeemByEmp = employeeUser.data.user.emp_id;
+        const redeemByEmpPhone = employeeUser.data.user.phone_no;
+
+        const resCusHistoryAdd = await axios.put(
+          `${apiUrl}/user/addhistory`,
+          {
+            phone_no: phoneNo.length !== 4 ? "+91-" + phoneNo : phoneNo,
+            redeemBy: redeemByEmp,
+            redeemOff: phoneNo.length !== 4 ? "+91-" + phoneNo : phoneNo,
+            coins: inputValue,
+            activity: activityname,
+          },
+          {
+            headers: {
+              token: token,
+              "Content-Type": "application/json",
+            },
+          }
+        );
+
+         const resEmpHistoryAdd = await axios.put(
+          `${apiUrl}/user/addhistory`,
+          {
+            phone_no: redeemByEmpPhone,
+            redeemBy: redeemByEmp,
+            redeemOff: phoneNo.length !== 4 ? "+91-" + phoneNo : phoneNo,
+            coins: inputValue,
+            activity: activityname,
+          },
+          {
+            headers: {
+              token: token,
+              "Content-Type": "application/json",
+            },
+          }
+        );
+
+    
+
+        const getCurrentDateYYYYMMDD = () => {
           const now = new Date();
-        const year = now.getFullYear();
-        const month = String(now.getMonth() + 1).padStart(2, '0');
-        const day = String(now.getDate()).padStart(2, '0');
+          const year = now.getFullYear();
+          const month = String(now.getMonth() + 1).padStart(2, "0");
+          const day = String(now.getDate()).padStart(2, "0");
           return `${year}/${month}/${day}`;
-          };
-        
-        const insightActivityRes=await axios.post(`${apiUrl}/insights/activityadd`,{
-          name: activityname,
-          date:getCurrentDateYYYYMMDD(),
-        })
-       
+        };
+
+        const insightActivityRes = await axios.post(
+          `${apiUrl}/insights/activityadd`,
+          {
+            name: activityname,
+            date: getCurrentDateYYYYMMDD(),
+          }
+        );
+
         setSuccess(res.data?.success);
         fetchFuningoMoney(phoneNo);
         setActivityBookings(res.data?.bookings);
+        toast.success("Coin Redeem Sucessfully");
       } else {
-        alert("Insufficient Funingo Coins");
+        toast.warning("Insufficient Funingo Coins");
         return;
       }
     } catch (err) {
       if (existingFuningoMoney - inputValue < 0) {
-        alert("Insufficient Funingo Coins");
+        toast.warning("Insufficient Funingo Coins");
         return;
       }
-      alert("Couldn't redeem coins, please try again!!");
+      toast.error("Couldn't redeem coins, please try again!!");
     }
   };
 
@@ -228,8 +277,10 @@ const RedeemTicket = () => {
         )}
         <Button
           variant="contained"
-          // sx={{ color: '#25507B' }}
-          onClick={() => fetchFuningoMoney(phoneNo)}
+          onClick={() => {
+            fetchFuningoMoney(phoneNo);
+            fetchActivities();
+          }}
         >
           Get Ticket Details
         </Button>
@@ -355,262 +406,24 @@ const RedeemTicket = () => {
                 </button>
                 {isDropdownVisible && (
                   <div className="select-options">
-                    <div
-                      className="option"
-                      onClick={() =>
-                        handleSelection(2500, "Trampoline Treasure Island")
-                      }
-                    >
-                      <span>Trampoline Treasure Island</span>
-                      <div className="funingo-icon-container">
-                        <span>2500</span>
-                        <Coin />
+                    {activities.map((activity) => (
+                      <div
+                        key={activity.id || activity.name}
+                        className="option"
+                        onClick={() =>
+                          handleSelection(
+                            activity.coins_required,
+                            activity.name
+                          )
+                        }
+                      >
+                        <span>{activity.name}</span>
+                        <div className="funingo-icon-container">
+                          <span>{activity.coins_required}</span>
+                          <Coin />
+                        </div>
                       </div>
-                    </div>
-                    <div
-                      className="option"
-                      onClick={() => handleSelection(500, "Jump up")}
-                    >
-                      <span>Jump up</span>
-                      <div className="funingo-icon-container">
-                        <span>500</span>
-                        <Coin />
-                      </div>
-                    </div>
-                    <div
-                      className="option"
-                      onClick={() => handleSelection(500, "Tunnel Game")}
-                    >
-                      <span>Tunnel Game</span>
-                      <div className="funingo-icon-container">
-                        <span>500</span>
-                        <Coin />
-                      </div>
-                    </div>
-                    <div
-                      className="option"
-                      onClick={() => handleSelection(3000, "Paintball Arena")}
-                    >
-                      <span>Paintball Arena</span>
-                      <div className="funingo-icon-container">
-                        <span>3000</span>
-                        <Coin />
-                      </div>
-                    </div>
-                    <div
-                      className="option"
-                      onClick={() => handleSelection(1500, "Gel Blast Arena")}
-                    >
-                      <span>Gel Blast Arena</span>
-                      <div className="funingo-icon-container">
-                        <span>1500</span>
-                        <Coin />
-                      </div>
-                    </div>
-                    <div
-                      className="option"
-                      onClick={() =>
-                        handleSelection(2500, "Low Ropes Challenge")
-                      }
-                    >
-                      <span>Low Ropes Challenge</span>
-                      <div className="funingo-icon-container">
-                        <span>2500</span>
-                        <Coin />
-                      </div>
-                    </div>
-                    <div
-                      className="option"
-                      onClick={() => handleSelection(1500, "High Ropes Haven")}
-                    >
-                      <span>High Ropes Haven</span>
-                      <div className="funingo-icon-container">
-                        <span>1500</span>
-                        <Coin />
-                      </div>
-                    </div>
-                    <div
-                      className="option"
-                      onClick={() =>
-                        handleSelection(3000, "Giant Swing Skybound")
-                      }
-                    >
-                      <span>Giant Swing Skybound</span>
-                      <div className="funingo-icon-container">
-                        <span>3000</span>
-                        <Coin />
-                      </div>
-                    </div>
-                    <div
-                      className="option"
-                      onClick={() =>
-                        handleSelection(2500, "Sky Cyclist's Trail")
-                      }
-                    >
-                      <span>Sky Cyclist's Trail</span>
-                      <div className="funingo-icon-container">
-                        <span>2500</span>
-                        <Coin />
-                      </div>
-                    </div>
-                    <div
-                      className="option"
-                      onClick={() => handleSelection(500, "Commando Climb Net")}
-                    >
-                      <span>Commando Climb Net</span>
-                      <div className="funingo-icon-container">
-                        <span>500</span>
-                        <Coin />
-                      </div>
-                    </div>
-                    <div
-                      className="option"
-                      onClick={() => handleSelection(2000, "Peak Rock Climb")}
-                    >
-                      <span>Peak Rock Climb</span>
-                      <div className="funingo-icon-container">
-                        <span>2000</span>
-                        <Coin />
-                      </div>
-                    </div>
-                    <div
-                      className="option"
-                      onClick={() => handleSelection(1000, "Meltdown Madness")}
-                    >
-                      <span>Meltdown Madness</span>
-                      <div className="funingo-icon-container">
-                        <span>1000</span>
-                        <Coin />
-                      </div>
-                    </div>
-                    <div
-                      className="option"
-                      onClick={() =>
-                        handleSelection(1000, "Bucking Bull Arena")
-                      }
-                    >
-                      <span>Bucking Bull Arena</span>
-                      <div className="funingo-icon-container">
-                        <span>1000</span>
-                        <Coin />
-                      </div>
-                    </div>
-                    <div
-                      className="option"
-                      onClick={() =>
-                        handleSelection(500, "Kid's Obstacle Odyssey")
-                      }
-                    >
-                      <span>Kid's Obstacle Odyssey</span>
-                      <div className="funingo-icon-container">
-                        <span>500</span>
-                        <Coin />
-                      </div>
-                    </div>
-                    <div
-                      className="option"
-                      onClick={() => handleSelection(500, "Sumo Showdown")}
-                    >
-                      <span>Sumo Showdown</span>
-                      <div className="funingo-icon-container">
-                        <span>500</span>
-                        <Coin />
-                      </div>
-                    </div>
-                    <div
-                      className="option"
-                      onClick={() => handleSelection(500, "Archery Alley")}
-                    >
-                      <span>Archery Alley</span>
-                      <div className="funingo-icon-container">
-                        <span>500</span>
-                        <Coin />
-                      </div>
-                    </div>
-                    <div
-                      className="option"
-                      onClick={() => handleSelection(2500, "ZipLine")}
-                    >
-                      <span>ZipLine</span>
-                      <div className="funingo-icon-container">
-                        <span>2500</span>
-                        <Coin />
-                      </div>
-                    </div>
-                    <div
-                      className="option"
-                      onClick={() => handleSelection(2500, "Wall rappelling")}
-                    >
-                      <span>Wall rappelling</span>
-                      <div className="funingo-icon-container">
-                        <span>2500</span>
-                        <Coin />
-                      </div>
-                    </div>
-                    <div
-                      className="option"
-                      onClick={() => handleSelection(1000, "Zorbie Fight")}
-                    >
-                      <span>Zorbie Fight</span>
-                      <div className="funingo-icon-container">
-                        <span>1000</span>
-                        <Coin />
-                      </div>
-                    </div>
-                    <div
-                      className="option"
-                      onClick={() => handleSelection(1000, "Shooter's Range")}
-                    >
-                      <span>Shooter's Range</span>
-                      <div className="funingo-icon-container">
-                        <span>1000</span>
-                        <Coin />
-                      </div>
-                    </div>
-                    <div
-                      className="option"
-                      onClick={() =>
-                        handleSelection(1000, "Pedal Power Go Kart")
-                      }
-                    >
-                      <span>Pedal Power Go Kart</span>
-                      <div className="funingo-icon-container">
-                        <span>1000</span>
-                        <Coin />
-                      </div>
-                    </div>
-                    <div
-                      className="option"
-                      onClick={() =>
-                        handleSelection(2500, "Rocket Ejector Launch")
-                      }
-                    >
-                      <span>Rocket Ejector Launch</span>
-                      <div className="funingo-icon-container">
-                        <span>2500</span>
-                        <Coin />
-                      </div>
-                    </div>
-                    <div
-                      className="option"
-                      onClick={() => handleSelection(1500, "Gyro Sphere 360")}
-                    >
-                      <span>Gyro Sphere 360</span>
-                      <div className="funingo-icon-container">
-                        <span>1500</span>
-                        <Coin />
-                      </div>
-                    </div>
-                    <div
-                      className="option"
-                      onClick={() => handleSelection(1000, "Cyclone Cycle 360")}
-                    >
-                      <span>Cyclone Cycle 360</span>
-                      <div className="funingo-icon-container">
-                        <span>1000</span>
-                        <Coin />
-                      </div>
-                    </div>
+                    ))}
                   </div>
                 )}
               </div>
@@ -680,7 +493,6 @@ const RedeemTicket = () => {
 };
 
 export default RedeemTicket;
-
 
 // import './App.css';
 // import Coin from '../../admin/Coin'; // Import the coin image
