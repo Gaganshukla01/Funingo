@@ -167,6 +167,7 @@ export const activityAdd = async (req, res) => {
         date,
         redemptions: 1,
         assignedPeople: peopleArray,
+        
       });
 
       const savedActivity = await newActivity.save();
