@@ -99,9 +99,8 @@ const UserCardsDashboard = () => {
                 userId: user.id,
                 date: activity.date,
                 time: activity.time,
-                userPhone: user.phone
+                userPhone: user.phone,
               });
-              
              
               user.employeeHistory.push({
                 id: activity.id,
@@ -234,6 +233,7 @@ const UserCardsDashboard = () => {
   );
 
   const HistoryItem = ({ item, showEmployee = false }) => (
+    
     <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
       <div className="flex justify-between items-start mb-2">
         <h4 className="font-medium text-gray-900">{item.activity}</h4>
@@ -246,7 +246,7 @@ const UserCardsDashboard = () => {
         <>
         <p className="text-sm text-blue-600 mb-1">By: {item.employee}</p>
         {/* here i have to upadte the field for emp id */}
-        <p className="text-sm text-blue-600 mb-1">By: {item.empId}</p>
+        <p className="text-sm text-blue-600 mb-1">By: {item.emp_id}</p>
         </>
       )}
       <div className="flex items-center space-x-2 text-sm text-gray-500">

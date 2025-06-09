@@ -212,6 +212,13 @@ const RedeemTicket = () => {
             date: getCurrentDateYYYYMMDD(),
           }
         );
+        const employeeinsightres=await axios.put(
+          `${apiUrl}/insights/employeeactivityupdate`,{
+            empid:redeemByEmp,
+            activityName:activityname,
+            count:1
+          }
+        )
 
         setSuccess(res.data?.success);
         fetchFuningoMoney(phoneNo);

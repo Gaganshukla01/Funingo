@@ -249,7 +249,7 @@ export const employeeFetch = async (req, res) => {
 
 export const employeeActivityUpdate = async (req, res) => {
   try {
-    const { empid, activityName } = req.body;
+    const { empid, activityName,count } = req.body;
 
     if (!empid || !activityName) {
       return res.status(400).json({
@@ -259,9 +259,7 @@ export const employeeActivityUpdate = async (req, res) => {
     }
 
     const currentDate = new Date().toISOString().split("T")[0];
-
     const employee = await EmployeeModel.findOne({ empid });
-
     if (!employee) {
       return res.status(404).json({
         success: false,
@@ -279,7 +277,7 @@ export const employeeActivityUpdate = async (req, res) => {
     } else {
       employee.activities.push({
         name: activityName,
-        count: 0,
+        count: count||0,
         date: currentDate,
       });
     }

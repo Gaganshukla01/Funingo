@@ -486,6 +486,9 @@ export const getTransactions = async (req, res) => {
   res.status(200).send({ success: true, transactions });
 };
 
+// export const getAllTransactions=async(req,res)=>{
+
+// }
 
 export const getUserNameByPhone = async (req,res) => {
  let { phone_no } = req.params;
