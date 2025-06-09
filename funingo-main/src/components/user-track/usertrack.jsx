@@ -18,49 +18,111 @@ const UserCardsDashboard = () => {
   const { token } = useSelector((state) => state.userSlice);
 
   useEffect(() => {
+    if (selectedUser || selectedEmployee) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [selectedUser, selectedEmployee]);
+
+  useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const response = await axios.get(`${apiUrl}/user/getallusers`,{
+        
+        // Fetch user transactions
+        const resUserHistory = await axios.get(`${apiUrl}/user/getalltransactions`, {
+          headers: {
+            token: token,
+            "Content-Type": "application/json",
+          }
+        });
+
+        console.log('Transaction data:', resUserHistory);
+        
+        // Fetch all users
+        const response = await axios.get(`${apiUrl}/user/getallusers`, {
           headers: {
             token: token,
             "Content-Type": "application/json",
           },
-        }
-            
-        );
-        const allData = response.data.users;
-        console.log(allData,"usertrack")
-       
-        const users = allData.filter(item => item.user_type === 'customer');
-        const employees = allData.filter(item => item.user_type === 'employee' || item.user_type === 'admin' || item.user_type === 'window_employee' );
+        });
         
-        const transformedUsers = users.map(user => ({
-          id: user._id,
-          name: `${user.first_name} ${user.last_name}`,
-          email: user.email,
-          phone: user.phone_no,
-          avatar: user.first_name.charAt(0) + user.last_name.charAt(0),
-          totalCoins: user.funingo_money || 0,
-          status: user.premium && user.premium.length > 0 ? 'premium' : 'active',
-          city: user.city,
-          state: user.state,
-          dob: user.dob,
-          gender: user.gender,
-          verified: user.verified,
-          regDate: user.reg_date,
-          bookedTickets: user.booked_tickets?.length || 0,
-          shortId: user.short_id,
-          userHistory: user.history?.map(h => ({
+        const allData = response.data.users;
+        const transactionData = resUserHistory.data.data || [];
+
+        const users = allData.filter(item => item.user_type === 'customer');
+        const employees = allData.filter(item => item.user_type === 'employee' || item.user_type === 'admin' || item.user_type === 'window_employee');
+        
+        // Create a map of transactions by user ID
+        const transactionsByUser = {};
+        transactionData.forEach(transaction => {
+          const userId = transaction.user;
+          if (!transactionsByUser[userId]) {
+            transactionsByUser[userId] = [];
+          }
+          transactionsByUser[userId].push(transaction);
+        });
+
+        const transformedUsers = users.map(user => {
+          // Get transactions for this user
+          const userTransactions = transactionsByUser[user._id] || [];
+          
+          // Combine existing history with transaction data
+          const existingHistory = user.history?.map(h => ({
             id: h._id,
             activity: h.activity,
             coinsUsed: parseInt(h.coins),
             date: new Date(h.timestamp).toLocaleDateString(),
             time: new Date(h.timestamp).toLocaleTimeString(),
-            employee: h.redeemBy 
-          })) || [],
-          employeeHistory: []
-        }));
+            employee: h.redeemBy,
+            type: 'history', // Mark as existing history
+            source: 'user_history'
+          })) || [];
+
+          // Transform transaction data
+          const transactionHistory = userTransactions.map(transaction => ({
+            id: transaction._id,
+            activity: transaction.description,
+            coinsUsed: transaction.coins,
+            date: new Date(transaction.createdAt).toLocaleDateString(),
+            time: new Date(transaction.createdAt).toLocaleTimeString(),
+            employee: null, // Transactions don't have employee info
+            type: transaction.type, // 'credit' or 'debit'
+            source: 'transaction'
+          }));
+
+          // Combine and sort all activities by date (newest first)
+          const allActivities = [...existingHistory, ...transactionHistory].sort((a, b) => {
+            const dateA = new Date(a.date + ' ' + a.time);
+            const dateB = new Date(b.date + ' ' + b.time);
+            return dateB - dateA;
+          });
+
+          return {
+            id: user._id,
+            name: `${user.first_name} ${user.last_name}`,
+            email: user.email,
+            phone: user.phone_no,
+            avatar: user.first_name.charAt(0) + user.last_name.charAt(0),
+            totalCoins: user.funingo_money || 0,
+            status: user.premium && user.premium.length > 0 ? 'premium' : 'active',
+            city: user.city,
+            state: user.state,
+            dob: user.dob,
+            gender: user.gender,
+            verified: user.verified,
+            regDate: user.reg_date,
+            bookedTickets: user.booked_tickets?.length || 0,
+            shortId: user.short_id,
+            userHistory: allActivities,
+            employeeHistory: []
+          };
+        });
 
         const transformedEmployees = employees.map(emp => ({
           id: emp._id,
@@ -90,7 +152,6 @@ const UserCardsDashboard = () => {
             if (activity.employee && employeeMap[activity.employee]) {
               const employee = employeeMap[activity.employee];
               
-             
               employee.redemptionHistory.push({
                 id: activity.id,
                 item: activity.activity,
@@ -108,13 +169,14 @@ const UserCardsDashboard = () => {
                 coinsUsed: activity.coinsUsed,
                 date: activity.date,
                 time: activity.time,
-                employee: employee.name
+                employee: employee.name,
+                empId: employee.empId
               });
             }
           });
         });
 
-        // Calculated total redeemed for each employee
+        // Calculate total redeemed for each employee
         transformedEmployees.forEach(emp => {
           emp.totalRedeemed = emp.redemptionHistory.reduce((total, item) => total + item.coinsRedeemed, 0);
         });
@@ -131,7 +193,7 @@ const UserCardsDashboard = () => {
     };
 
     fetchData();
-  }, []);
+  }, [token]);
 
   // Filter users based on search query
   const filteredUsers = userData.filter(user => 
@@ -232,29 +294,58 @@ const UserCardsDashboard = () => {
     </div>
   );
 
-  const HistoryItem = ({ item, showEmployee = false }) => (
+  const HistoryItem = ({ item, showEmployee = false }) => {
+    const isCredit = item.type === 'credit';
+    const isTransaction = item.source === 'transaction';
     
-    <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-      <div className="flex justify-between items-start mb-2">
-        <h4 className="font-medium text-gray-900">{item.activity}</h4>
-        <div className="flex items-center space-x-1 text-amber-600 font-bold">
-          <Coins size={14} />
-          <span>{item.coinsUsed}</span>
+    return (
+      <div className={`rounded-lg p-4 border ${
+        isTransaction 
+          ? (isCredit ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200')
+          : 'bg-gray-50 border-gray-200'
+      }`}>
+        <div className="flex justify-between items-start mb-2">
+          <div className="flex-1">
+            <h4 className="font-medium text-gray-900">{item.activity}</h4>
+            {isTransaction && (
+              <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium mt-1 ${
+                isCredit 
+                  ? 'bg-green-100 text-green-800' 
+                  : 'bg-red-100 text-red-800'
+              }`}>
+                {isCredit ? 'Credit' : 'Debit'}
+              </span>
+            )}
+          </div>
+          <div className={`flex items-center space-x-1 font-bold ${
+            isTransaction 
+              ? (isCredit ? 'text-green-600' : 'text-red-600')
+              : 'text-amber-600'
+          }`}>
+            <Coins size={14} />
+            <span>{isCredit ? '+' : '-'}{item.coinsUsed}</span>
+          </div>
+        </div>
+        {showEmployee && item.employee && (
+          <>
+            <p className="text-sm text-blue-600 mb-1">By: {item.employee}</p>
+            {item.empId && (
+              <p className="text-sm text-blue-600 mb-1">Emp ID: {item.empId}</p>
+            )}
+          </>
+        )}
+        <div className="flex items-center space-x-2 text-sm text-gray-500">
+          <Clock size={12} />
+          <span>{item.date} at {item.time}</span>
+          {isTransaction && (
+            <span className="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded">
+              Transaction
+            </span>
+          )}
         </div>
       </div>
-      {showEmployee && item.employee && (
-        <>
-        <p className="text-sm text-blue-600 mb-1">By: {item.employee}</p>
-        {/* here i have to upadte the field for emp id */}
-        <p className="text-sm text-blue-600 mb-1">By: {item.emp_id}</p>
-        </>
-      )}
-      <div className="flex items-center space-x-2 text-sm text-gray-500">
-        <Clock size={12} />
-        <span>{item.date} at {item.time}</span>
-      </div>
-    </div>
-  );
+    );
+  };
 
   const RedemptionItem = ({ item }) => (
     <div className="bg-green-50 rounded-lg p-4 border border-green-200">
@@ -275,7 +366,21 @@ const UserCardsDashboard = () => {
   );
 
   const calculateTotal = (history) => {
-    return history.reduce((total, item) => total + (item.coinsUsed || item.coinsRedeemed), 0);
+    return history.reduce((total, item) => {
+      if (item.type === 'credit') {
+        return total; // Don't add credits to the "used" total
+      }
+      return total + (item.coinsUsed || item.coinsRedeemed);
+    }, 0);
+  };
+
+  const calculateTotalCredits = (history) => {
+    return history.reduce((total, item) => {
+      if (item.type === 'credit') {
+        return total + item.coinsUsed;
+      }
+      return total;
+    }, 0);
   };
 
   if (loading) {
@@ -345,6 +450,9 @@ const UserCardsDashboard = () => {
         {/* Search Bar */}
         <div className="mb-6">
           <div className="relative max-w-md">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <Search size={18} className="text-gray-400" />
+            </div>
             <input
               type="text"
               placeholder={activeSection === 'users' 
@@ -383,9 +491,9 @@ const UserCardsDashboard = () => {
 
         {/* User Popover Modal */}
         {selectedUser && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
-              <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-6 text-white">
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[9999] overflow-y-auto">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full my-8 max-h-[calc(100vh-4rem)] overflow-hidden flex flex-col">
+              <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-6 text-white flex-shrink-0">
                 <div className="flex justify-between items-center">
                   <div className="flex items-center space-x-4">
                     <div className="w-16 h-16 rounded-full bg-white bg-opacity-20 flex items-center justify-center text-white font-bold text-xl">
@@ -414,7 +522,7 @@ const UserCardsDashboard = () => {
                 </div>
               </div>
 
-              <div className="border-b border-gray-200">
+              <div className="border-b border-gray-200 flex-shrink-0">
                 <div className="flex">
                   <button
                     onClick={() => setActiveTab('user')}
@@ -426,7 +534,7 @@ const UserCardsDashboard = () => {
                   >
                     <div className="flex items-center justify-center space-x-2">
                       <Activity size={18} />
-                      <span>User Activities ({selectedUser.userHistory.length})</span>
+                      <span>All Activities ({selectedUser.userHistory.length})</span>
                     </div>
                   </button>
                   <button
@@ -445,23 +553,29 @@ const UserCardsDashboard = () => {
                 </div>
               </div>
 
-              <div className="p-6 max-h-96 overflow-y-auto">
+              <div className="p-6 flex-1 overflow-y-auto">
                 {activeTab === 'user' && (
                   <div>
                     <div className="flex justify-between items-center mb-4">
-                      <h3 className="text-lg font-semibold text-gray-900">User Activity History</h3>
-                      <div className="flex items-center space-x-1 text-amber-600 font-bold">
-                        <Coins size={16} />
-                        <span>Total Used: {calculateTotal(selectedUser.userHistory)}</span>
+                      <h3 className="text-lg font-semibold text-gray-900">All Activity History</h3>
+                      <div className="flex space-x-4">
+                        <div className="flex items-center space-x-1 text-green-600 font-bold">
+                          <Coins size={16} />
+                          <span>Credits: {calculateTotalCredits(selectedUser.userHistory)}</span>
+                        </div>
+                        <div className="flex items-center space-x-1 text-red-600 font-bold">
+                          <Coins size={16} />
+                          <span>Used: {calculateTotal(selectedUser.userHistory)}</span>
+                        </div>
                       </div>
                     </div>
                     <div className="space-y-3">
                       {selectedUser.userHistory.length > 0 ? (
                         selectedUser.userHistory.map(item => (
-                          <HistoryItem key={item.id} item={item} />
+                          <HistoryItem key={`${item.source}-${item.id}`} item={item} />
                         ))
                       ) : (
-                        <p className="text-gray-500 text-center py-8">No user activities found</p>
+                        <p className="text-gray-500 text-center py-8">No activities found</p>
                       )}
                     </div>
                   </div>
@@ -494,9 +608,9 @@ const UserCardsDashboard = () => {
 
         {/* Employee Popover Modal */}
         {selectedEmployee && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
-              <div className="bg-gradient-to-r from-green-600 to-teal-600 p-6 text-white">
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[9999] overflow-y-auto">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full my-8 max-h-[calc(100vh-4rem)] overflow-hidden flex flex-col">
+              <div className="bg-gradient-to-r from-green-600 to-teal-600 p-6 text-white flex-shrink-0">
                 <div className="flex justify-between items-center">
                   <div className="flex items-center space-x-4">
                     <div className="w-16 h-16 rounded-full bg-white bg-opacity-20 flex items-center justify-center text-white font-bold text-xl">
@@ -528,7 +642,7 @@ const UserCardsDashboard = () => {
                 </div>
               </div>
 
-              <div className="p-6 max-h-96 overflow-y-auto">
+              <div className="p-6 flex-1 overflow-y-auto">
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="text-lg font-semibold text-gray-900">Redemption History</h3>
                   <div className="flex items-center space-x-1 text-green-600 font-bold">

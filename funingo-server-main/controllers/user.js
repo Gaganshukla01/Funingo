@@ -154,7 +154,6 @@ export const fetchSelf = async (req, res) => {
     success: true,
     user: { ...user.toJSON(), hash_password: undefined },
   });
-  console.log(user)
 };
 
 export const forgetPassword = async (req, res) => {
@@ -486,9 +485,21 @@ export const getTransactions = async (req, res) => {
   res.status(200).send({ success: true, transactions });
 };
 
-// export const getAllTransactions=async(req,res)=>{
+export const getAllTransactions = async (req, res) => {
+  try {
+    const transactions = await Transaction.find({}).sort({
+      created_at: -1,
+    });
 
-// }
+    if (!transactions || transactions.length === 0) {
+      return res.status(200).json({ success: true, data: "" });
+    }
+
+    res.status(200).json({ success: true, data: transactions });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
 
 export const getUserNameByPhone = async (req,res) => {
  let { phone_no } = req.params;

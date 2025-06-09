@@ -18,6 +18,7 @@ import {
   updateUserType,
   historyAdd,
   getUserNameByPhone,
+  getAllTransactions
 } from "../controllers/user.js";
 import { authenticateEmployee, authenticateUser } from "../middleware.js";
 const router = express.Router();
@@ -59,5 +60,6 @@ router
 router.get("/coins/:phone_no", catchAsync(getFuningoCoinsFromPhnNo));
 
 router.get("/transactions", authenticateUser, catchAsync(getTransactions));
+router.get("/getalltransactions", authenticateUser, catchAsync(getAllTransactions));
 
 export default router;
