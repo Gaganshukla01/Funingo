@@ -434,13 +434,7 @@ const RedeemTicket = () => {
                   </div>
                 )}
               </div>
-              {/* <Box
-        component={'label'}
-        htmlFor='yellow-flag'
-        sx={{ fontSize: '20px' }}
-      >
-        Coins
-      </Box> */}
+    
             </Box>
             {/* <Box
               sx={{

@@ -72,7 +72,7 @@ const UserCardsDashboard = () => {
           // Get transactions for this user
           const userTransactions = transactionsByUser[user._id] || [];
           
-          // Combine existing history with transaction data
+          // Get existing history (for employee activities only)
           const existingHistory = user.history?.map(h => ({
             id: h._id,
             activity: h.activity,
@@ -84,7 +84,7 @@ const UserCardsDashboard = () => {
             source: 'user_history'
           })) || [];
 
-          // Transform transaction data
+          // Transform transaction data (for user activities)
           const transactionHistory = userTransactions.map(transaction => ({
             id: transaction._id,
             activity: transaction.description,
@@ -96,8 +96,8 @@ const UserCardsDashboard = () => {
             source: 'transaction'
           }));
 
-          // Combine and sort all activities by date (newest first)
-          const allActivities = [...existingHistory, ...transactionHistory].sort((a, b) => {
+          // Sort transaction history by date (newest first)
+          const sortedTransactionHistory = transactionHistory.sort((a, b) => {
             const dateA = new Date(a.date + ' ' + a.time);
             const dateB = new Date(b.date + ' ' + b.time);
             return dateB - dateA;
@@ -119,8 +119,8 @@ const UserCardsDashboard = () => {
             regDate: user.reg_date,
             bookedTickets: user.booked_tickets?.length || 0,
             shortId: user.short_id,
-            userHistory: allActivities,
-            employeeHistory: []
+            userHistory: sortedTransactionHistory, // Only transaction data for user activities
+            employeeHistory: existingHistory // Only existing history for employee activities
           };
         });
 
@@ -146,9 +146,9 @@ const UserCardsDashboard = () => {
           }
         });
 
-        // Process redemption history and link employees to users
+        // Process redemption history and link employees to users (using existing history only)
         transformedUsers.forEach(user => {
-          user.userHistory.forEach(activity => {
+          user.employeeHistory.forEach(activity => {
             if (activity.employee && employeeMap[activity.employee]) {
               const employee = employeeMap[activity.employee];
               
@@ -163,15 +163,9 @@ const UserCardsDashboard = () => {
                 userPhone: user.phone,
               });
              
-              user.employeeHistory.push({
-                id: activity.id,
-                activity: activity.activity,
-                coinsUsed: activity.coinsUsed,
-                date: activity.date,
-                time: activity.time,
-                employee: employee.name,
-                empId: employee.empId
-              });
+              // Update employee info in user's employee history
+              activity.employee = employee.name;
+              activity.empId = employee.empId;
             }
           });
         });
@@ -451,7 +445,6 @@ const UserCardsDashboard = () => {
         <div className="mb-6">
           <div className="relative max-w-md">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Search size={18} className="text-gray-400" />
             </div>
             <input
               type="text"
@@ -534,7 +527,7 @@ const UserCardsDashboard = () => {
                   >
                     <div className="flex items-center justify-center space-x-2">
                       <Activity size={18} />
-                      <span>All Activities ({selectedUser.userHistory.length})</span>
+                      <span>Transactions ({selectedUser.userHistory.length})</span>
                     </div>
                   </button>
                   <button
@@ -557,7 +550,7 @@ const UserCardsDashboard = () => {
                 {activeTab === 'user' && (
                   <div>
                     <div className="flex justify-between items-center mb-4">
-                      <h3 className="text-lg font-semibold text-gray-900">All Activity History</h3>
+                      <h3 className="text-lg font-semibold text-gray-900">Transaction History</h3>
                       <div className="flex space-x-4">
                         <div className="flex items-center space-x-1 text-green-600 font-bold">
                           <Coins size={16} />
@@ -565,7 +558,7 @@ const UserCardsDashboard = () => {
                         </div>
                         <div className="flex items-center space-x-1 text-red-600 font-bold">
                           <Coins size={16} />
-                          <span>Used: {calculateTotal(selectedUser.userHistory)}</span>
+                          <span>Debits: {calculateTotal(selectedUser.userHistory)}</span>
                         </div>
                       </div>
                     </div>
@@ -575,7 +568,7 @@ const UserCardsDashboard = () => {
                           <HistoryItem key={`${item.source}-${item.id}`} item={item} />
                         ))
                       ) : (
-                        <p className="text-gray-500 text-center py-8">No activities found</p>
+                        <p className="text-gray-500 text-center py-8">No transactions found</p>
                       )}
                     </div>
                   </div>
