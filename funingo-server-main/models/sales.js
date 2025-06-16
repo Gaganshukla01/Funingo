@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { stringify } from "querystring";
 
 const salesSchema = new mongoose.Schema({
   _id: { type: String, required: true }, 

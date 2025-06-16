@@ -38,7 +38,7 @@ const userSchema = new mongoose.Schema(
     hash_password: String,
     city: String,
     state: String,
-    locality: String, // If city === 'jabalpur'
+    locality: String,
     verified: Boolean,
     profile_picture: {
       type: String,
@@ -63,6 +63,10 @@ const userSchema = new mongoose.Schema(
       default: "customer",
     },
 
+    emp_id: {
+      type: String,
+      default: "NA",
+    },
     premium: [
       {
         expires_on: {
@@ -90,6 +94,28 @@ const userSchema = new mongoose.Schema(
       type: String,
       unique: true,
     },
+
+    history: [
+      {
+        redeemBy: {
+          type: String,
+        },
+        redeemOff: {
+          type: String,
+        },
+        coins: {
+          type: String,
+
+        },
+        activity: {
+          type: String,
+        },
+        timestamp: {
+          type: Date,
+          default: Date.now, 
+        },
+      },
+    ],
   },
   {
     versionKey: false,

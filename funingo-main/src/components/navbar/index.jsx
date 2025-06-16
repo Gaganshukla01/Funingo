@@ -23,6 +23,7 @@ import Login from "../auth/signup";
 import ZoneHoverComponent from "../hover/first";
 import EventHoverComponent from "../hover/second";
 import CorporateHoverComponent from "../hover/third";
+import EmployeeManagementForms from "../employee/employee-add";
 import DataForms from "../data-entry/entry";
 import Packages from "../package/package";
 import { setLoggedIn, removeUser } from "../../utils/store/slice/userSlice";
@@ -331,6 +332,36 @@ const Navbar = () => {
             </Button>):
             <></>
             }
+
+             {admin?
+            (<Button
+              onClick={() => {
+                navigate("/admin/empoyeestats");
+                scrollToTop();
+              }}
+              sx={{ fontWeight: "600", color: "#2474D2", height: "100%" }}
+              className="navText"
+            >
+             Manage
+            </Button>):
+            <></>
+            }
+
+            {/* usertransection */}
+             {admin?
+            (<Button
+              onClick={() => {
+                navigate("/admin/userdash");
+                scrollToTop();
+              }}
+              sx={{ fontWeight: "600", color: "#2474D2", height: "100%" }}
+              className="navText"
+            >
+             History
+            </Button>):
+            <></>
+            }
+
 
             {windowEmployee ? (
               <Button

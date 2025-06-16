@@ -1,13 +1,14 @@
 import mongoose from 'mongoose';
 
 const EmployeeSchema = new mongoose.Schema({
-  empid: { type: String, required: true, unique: true },
+  empid: { type: String,unique: true,required:true },
   name: { type: String, required: true },
+  phone:{type:String},
   activities: [
     {
-      name: { type: String, required: true },
+      name: { type: String },
       count: { type: Number, default: 1 },
-      date:{type:String,required:true},
+      date:{type:String},
     },
 
   ],

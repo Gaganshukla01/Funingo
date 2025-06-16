@@ -337,8 +337,6 @@ import { useLocation } from "react-router-dom";
 import NavigateNextIcon from "@mui/icons-material/NavigateNext";
 import NavigateBeforeIcon from "@mui/icons-material/NavigateBefore";
 
-
-
 const GetQRTickets = () => {
   const [ticketId, setTicketId] = useState("");
   const [phoneNo, setPhoneNo] = useState("");
@@ -369,7 +367,7 @@ const GetQRTickets = () => {
           token,
         },
       });
-      console.log("response", resp);
+      console.log("response", ticketId);
       setQrTicketsData({
         total_coins: resp.data.total_coins,
         tickets: resp.data.tickets,
@@ -534,10 +532,9 @@ const GetQRTickets = () => {
               justifyContent={"center"}
             >
               {/*qr ticket genration..  */}
+
               <div style={{ textAlign: "center" }}>
-                <Typography sx={{ fontWeight: "600" }}>
-                  {qrTicketsData.tickets?.[current]?.short_id}
-                </Typography>
+                <Typography sx={{ fontWeight: "600" }}>{ticketId}</Typography>
                 <img
                   id="qrCodeImage"
                   src={qrTicketsData.tickets?.[current]?.qr}
@@ -545,7 +542,7 @@ const GetQRTickets = () => {
                   width="150px"
                   height="150px"
                 />
-                
+
                 <Button
                   variant="contained"
                   sx={{ marginTop: "10px" }}
@@ -557,20 +554,41 @@ const GetQRTickets = () => {
                         return;
                       }
 
-                      const response = await fetch(qrUrl);
-                      const blob = await response.blob();
-                      const blobUrl = URL.createObjectURL(blob);
+                      const canvas = document.createElement("canvas");
+                      const ctx = canvas.getContext("2d");
 
-                      const link = document.createElement("a");
-                      link.href = blobUrl;
-                      link.setAttribute(
-                        "download",
-                        `QR_Ticket_${qrTicketsData.tickets?.[current]?.short_id}.png`
-                      );
-                      document.body.appendChild(link);
-                      link.click();
-                      document.body.removeChild(link);
-                      URL.revokeObjectURL(blobUrl);
+                      // Load the QR code image
+                      const qrImage = new Image();
+                      qrImage.src = qrUrl;
+
+                      qrImage.onload = () => {
+                        canvas.width = qrImage.width+20;
+                        canvas.height = qrImage.height + 50; 
+                        ctx.drawImage(qrImage, 0, 50); 
+
+                        ctx.font = "10px Arial";
+                        ctx.fillStyle = "black";
+                        ctx.textAlign = "right";
+                        ctx.fillText(
+                          `${ticketId}`,
+                          canvas.width/1.5 ,
+                          40
+                        ); 
+
+                        const blob = canvas.toBlob((blob) => {
+                          const blobUrl = URL.createObjectURL(blob);
+                          const link = document.createElement("a");
+                          link.href = blobUrl;
+                          link.setAttribute(
+                            "download",
+                            `QR_Ticket_${ticketId}.png`
+                          );
+                          document.body.appendChild(link);
+                          link.click();
+                          document.body.removeChild(link);
+                          URL.revokeObjectURL(blobUrl);
+                        }, "image/png");
+                      };
                     } catch (error) {
                       console.error("Error downloading QR code:", error);
                     }
@@ -578,9 +596,7 @@ const GetQRTickets = () => {
                 >
                   Download QR
                 </Button>
-              </div>
-
-              {/* <Typography>Total Coins: {qrTicketsData.total_coins}</Typography>   */}
+              </div> 
             </Grid>
             <Grid
               sx={{

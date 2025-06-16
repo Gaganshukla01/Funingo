@@ -94,6 +94,55 @@ export const updateUser = async (req, res) => {
   });
 };
 
+export const historyAdd = async (req, res) => {
+  try {
+    let { phone_no, redeemBy, redeemOff, coins, activity } = req.body;
+
+    if (!phone_no || !redeemBy || !redeemOff || !coins || !activity) {
+      return res.status(400).json({ success: false, message: "All fields are required." });
+    }
+
+    if (!phone_no.startsWith("+91-")) {
+      phone_no = `+91-${phone_no}`;
+    }
+
+    const user = await User.findOneAndUpdate(
+      { phone_no },
+      {
+        $push: {
+          history: { redeemBy, redeemOff, coins, activity, timestamp: new Date() },
+        },
+      },
+      { new: true }
+    );
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found." });
+    }
+
+    return res.status(200).json({ success: true, user });
+  } catch (error) {
+    console.error('Error updating user history:', error);
+    return res.status(500).json({ success: false, message: error.message || 'An error occurred while updating user history.' });
+  }
+};
+
+
+export const getAllusers = async (req, res) => {
+  try {
+    const users = await User.find({}).exec();
+    if (users.length === 0) {
+      return res.status(404).json({ success: false, message: 'No users found.' });
+    }
+    return res.status(200).json({ success: true, users });
+  } catch (error) {
+    console.error('Error fetching users:', error);
+    return res.status(500).json({ success: false, message: error.message || 'An error occurred while fetching users.' });
+  }
+};
+
+
+
 export const fetchSelf = async (req, res) => {
   const user = req.user;
 
@@ -434,4 +483,61 @@ export const getTransactions = async (req, res) => {
   });
 
   res.status(200).send({ success: true, transactions });
+};
+
+export const getAllTransactions = async (req, res) => {
+  try {
+    const transactions = await Transaction.find({}).sort({
+      created_at: -1,
+    });
+
+    if (!transactions || transactions.length === 0) {
+      return res.status(200).json({ success: true, data: "" });
+    }
+
+    res.status(200).json({ success: true, data: transactions });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const getUserNameByPhone = async (req,res) => {
+ let { phone_no } = req.params;
+ console.log(phone_no,"phone")
+if(phone_no.substring(0,4) !== "+91-"){
+   phone_no = "+91-" + phone_no;
+}
+  const user = await User.findOne({ phone_no });
+  if (!user) {
+    throw new ExpressError("User not found", 404);
+  }
+
+  res.status(200).json({
+    success: true,
+    name: (user?.first_name || "") + " " + (user?.last_name || ""),
+  });
+};
+
+export const updateUserType = async (req, res) => {
+  let { phone_no, user_type , emp_id } = req.body;
+  if(phone_no.substring(0,4) !== "+91-"){
+   phone_no = "+91-" + phone_no;
+}
+  
+  const user = await User.findOne({ phone_no });
+  
+  if (!user) {
+    throw new ExpressError("User not found", 404);
+  }
+
+  const updatedUser = await User.findByIdAndUpdate(
+    user._id,
+    { user_type , emp_id},
+    { runValidators: true, new: true }
+  );
+
+  res.status(200).send({
+    success: true,
+    user: { ...updatedUser.toJSON(), hash_password: undefined },
+  });
 };

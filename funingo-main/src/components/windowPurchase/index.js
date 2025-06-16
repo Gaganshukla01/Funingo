@@ -384,6 +384,7 @@ const WindowPurchase = () => {
           totalAmount: totalPrice,
         };
         setInvoiceData(newInvoiceData);
+        console.log(response.short_id,"ticketId")
         setShortId(response.short_id);
         callback?.(response.short_id);
         // invoice data setting
