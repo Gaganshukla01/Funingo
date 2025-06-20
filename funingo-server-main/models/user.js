@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 
+
 const userSchema = new mongoose.Schema(
   {
     first_name: String,
@@ -95,6 +96,29 @@ const userSchema = new mongoose.Schema(
       unique: true,
     },
 
+    isUnlimited: [ 
+      {
+        unlimited: { 
+          type: Boolean,
+        },
+         timestamp: {
+              type: Date,
+              default: Date.now,
+            },
+        activities: [ 
+          {
+            name: {
+              type: String,
+              required: true, 
+            },
+            count: {
+              type: Number,
+              required: true, 
+            },
+          },
+        ],
+      },
+    ],
     history: [
       {
         redeemBy: {

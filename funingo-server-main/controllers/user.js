@@ -10,7 +10,7 @@ import constants from "../constants.js";
 import { razorpay } from "../index.js";
 import { validatePaymentVerification } from "razorpay/dist/utils/razorpay-utils.js";
 import Transaction from "../models/transaction.js";
-
+import mongoose from "mongoose";
 export const registerUser = async (req, res) => {
   const saltRounds = 10;
 
@@ -541,3 +541,88 @@ export const updateUserType = async (req, res) => {
     user: { ...updatedUser.toJSON(), hash_password: undefined },
   });
 };
+
+
+
+
+export const userUnlimtedAdd = async (req, res) => {
+  const { phone, unlimited, activities } = req.body;
+  const phone_no = '+91-' + phone;
+
+  try {
+    const user = await User.findOne({ phone_no });
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+
+    const startOfToday = new Date();
+    
+    startOfToday.setHours(0, 0, 0, 0);
+    console.log(startOfToday)
+    const endOfToday = new Date();
+    endOfToday.setHours(23, 59, 59, 999);
+
+
+    let todayEntry = user.isUnlimited?.find(entry => {
+      if (!entry.timestamp) return false;
+      return entry.timestamp >= startOfToday && entry.timestamp <= endOfToday;
+    });
+
+    if (todayEntry) {
+   
+      todayEntry.unlimited = unlimited;
+
+      if (!Array.isArray(todayEntry.activities)) {
+        todayEntry.activities = [];
+      }
+
+   
+      for (const [name, count] of Object.entries(activities)) {
+        const trimmedName = name.trim();
+        const activityIndex = todayEntry.activities.findIndex(a => a.name === trimmedName);
+
+        if (activityIndex !== -1) {
+          todayEntry.activities[activityIndex].count = count;
+          todayEntry.activities[activityIndex].timestamp = new Date();
+        } else {
+          todayEntry.activities.push({
+            name: trimmedName,
+            count,
+            timestamp: new Date(),
+          });
+        }
+      }
+    } else {
+    
+      user.isUnlimited = user.isUnlimited || [];
+      user.isUnlimited.push({
+        unlimited,
+        created_at: new Date(),
+        activities: Object.entries(activities).map(([name, count]) => ({
+          name: name.trim(),
+          count,
+          timestamp: new Date(),
+        })),
+      });
+    }
+
+    await user.save();
+
+    return res.status(200).json({
+      message: 'Unlimited status and activities updated successfully',
+      user,
+    });
+  } catch (error) {
+    console.error('Error updating unlimited status:', error);
+    return res.status(500).json({ error: 'Server error while updating unlimited status' });
+  }
+};
+
+
+
+
+
+
+

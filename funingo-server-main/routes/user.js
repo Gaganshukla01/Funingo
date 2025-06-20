@@ -12,6 +12,7 @@ import {
   getFuningoCoinsFromPhnNo,
   createPremiumOrder,
   verifyPremiumPayment,
+  userUnlimtedAdd,
   createAddFuningoMoneyOrder,
   verifyAddFuningoMoneyPayment,
   getTransactions,
@@ -37,6 +38,7 @@ router.route("/login").post(catchAsync(loginUser));
 router.route("/forget-password").post(catchAsync(forgetPassword));
 router.route("/getusername/:phone_no").get(catchAsync(getUserNameByPhone));
 router.route("/updateusertype").put(catchAsync(updateUserType));
+router.route("/unlimitedupdate").put(catchAsync(userUnlimtedAdd));
 router
   .route("/validate-and-update-password")
   .post(catchAsync(validateAndUpdatePassword));
