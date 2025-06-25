@@ -8,6 +8,7 @@ import Coin from "../admin/Coin";
 import Invoice from "../invoice";
 import UnlimitedPackageModal from "./UnlimitedPackageModal";
 import { getDiscount } from "../../actions/ticket";
+import { toast } from "react-toastify";
 import {
   TextField,
   InputLabel,
@@ -136,30 +137,78 @@ const WindowPurchase = () => {
     setDob(e.target.value);
   };
 
-  const handleUnlimitedPackageSubmit = (selectedActivities) => {
+  // setting data to update in user section
+  const updateUnlimitedPackage = async (phoneNumber, unlimitedData) => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("Login or SignUp First");
+      }
+
+      const headers = {
+        token: token,
+        "Content-Type": "application/json",
+      };
+
+      const activitiesObj = {};
+      unlimitedData.activities.forEach((activity) => {
+        activitiesObj[activity.name] = activity.count || activity.quantity || 1;
+      });
+
+      const payload = {
+        phone: phoneNumber,
+        unlimited: true,
+        activities: activitiesObj,
+      };
+
+      const response = await axios.put(
+        `${apiUrl}/user/unlimitedupdate`,
+        payload,
+        { headers }
+      );
+
+      return response.data;
+    } catch (error) {
+      console.error("Error updating unlimited package:", error);
+      throw error;
+    }
+  };
+
+  const handleUnlimitedPackageSubmit = async (selectedActivities) => {
     console.log("Selected Activities:", selectedActivities);
 
-    setUnlimitedPackageData(selectedActivities);
+    try {
+      if (phoneNumber) {
+        await updateUnlimitedPackage(phoneNumber, selectedActivities);
+        console.log("Unlimited package updated successfully");
+      }
 
-    setSelectedSlots((prevSlots) =>
-      prevSlots.map((slot, index) =>
-        index === currentSlotIndex
-          ? {
-              ...slot,
-              package: {
-                _id: "unlimited_package",
-                name: "UNLIMITED PACKAGE",
-                price: selectedActivities.packageAmount,
-                activities: selectedActivities.activities,
-                isUnlimited: true,
-              },
-            }
-          : slot
-      )
-    );
+      setUnlimitedPackageData(selectedActivities);
 
-    // Close the modal
-    setUnlimitedPackageModalOpen(false);
+      setSelectedSlots((prevSlots) =>
+        prevSlots.map((slot, index) =>
+          index === currentSlotIndex
+            ? {
+                ...slot,
+                package: {
+                  _id: "UNLIMITED_PACKAGE",
+                  name: "UNLIMITED PACKAGE",
+                  price:
+                    selectedActivities.packageAmount ||
+                    selectedActivities.totalPrice,
+                  activities: selectedActivities.activities,
+                  isUnlimited: true,
+                },
+              }
+            : slot
+        )
+      );
+
+      setUnlimitedPackageModalOpen(false);
+    } catch (error) {
+      console.error("Error submitting unlimited package:", error);
+      setError("Failed to update unlimited package. Please try again.");
+    }
   };
 
   const handleCheckClick = () => {
@@ -350,10 +399,55 @@ const WindowPurchase = () => {
     );
   };
 
+  // reset values
+
+  const resetForm = () => {
+    setSelectedSlots([
+      {
+        package: "",
+        person_name: "",
+        age: "",
+        gender: "",
+      },
+    ]);
+    setCount(1);
+    setPersonCount(1);
+    setTotalPrice(0);
+    setPhoneNumber("");
+    setName("");
+    setDob("");
+    setCode("");
+    setCouponDiscount({});
+    setPaymentMode(null);
+    setExtraField(false);
+    setcashAmount(null);
+    setonlineAmount(null);
+    setCustomDiscount(0);
+    setPremiumDiscount(0);
+    setIsPremium(false);
+    setExistingFuningoMoney(0);
+    setError("");
+    setFetchUserError("");
+    setUnlimitedPackageData(null);
+    setAddress({
+      state: "Madhya Pradesh",
+      city: "Jabalpur",
+      locality: "",
+    });
+  };
+
   const handlePurchase = async (callback) => {
     const details = selectedSlots.map((data) => ({
       ...data,
-      package: data.package._id,
+      package: data.package.isUnlimited ? null : data.package._id,
+      packageType: data.package.isUnlimited ? "unlimited" : "regular",
+      unlimitedPackageData: data.package.isUnlimited
+        ? {
+            activities: data.package.activities,
+            price: data.package.price,
+            name: data.package.name,
+          }
+        : null,
     }));
 
     try {
@@ -385,16 +479,76 @@ const WindowPurchase = () => {
           paymentMethod: paymentMode.label,
           totalAmount: totalPrice,
         };
+
         setInvoiceData(newInvoiceData);
         console.log(response.short_id, "ticketId");
         setShortId(response.short_id);
+
+        // get current user
+        const employeeUser = await axios.get(`${apiUrl}/user/`, {
+          headers: {
+            token: token,
+            "Content-Type": "application/json",
+          },
+        });
+
+        const redeemByEmp = employeeUser.data.user.emp_id;
+        const redeemByEmpPhone = employeeUser.data.user.phone_no;
+        console.log(redeemByEmp,redeemByEmpPhone)
+        console.log(phoneNumber)
+
+                const resCusHistoryAdd = await axios.put(
+                  `${apiUrl}/user/addhistory`,
+                  {
+                    phone_no: phoneNumber.length !== 4 ? "+91-" + phoneNumber : phoneNumber,
+                    redeemBy: redeemByEmp,
+                    redeemOff: phoneNumber.length !== 4 ? "+91-" + phoneNumber : phoneNumber,
+                    coins: 0,
+                    activity: "Window Recharge",
+                  },
+                  {
+                    headers: {
+                      token: token,
+                      "Content-Type": "application/json",
+                    },
+                  }
+                );
+
+        toast.success(
+          `🎉 Ticket booked successfully! Ticket ID: ${response.short_id}`,
+          {
+            position: "top-right",
+            autoClose: 5000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+          }
+        );
+
+        setTimeout(() => {
+          resetForm();
+        }, 2000);
+
         callback?.(response.short_id);
       }
     } catch (error) {
-      // Handle the error here, e.g., display an error message to the user or log the error for troubleshooting
-      console.error("Please fill all the fields", error);
+      toast.error("Please fill all the fields", error);
       setError(error?.response?.data?.error);
-      // Add your error handling logic here
+
+      toast.error(
+        `❌ ${
+          error?.response?.data?.error || "Booking failed. Please try again."
+        }`,
+        {
+          position: "top-right",
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        }
+      );
     }
   };
 
@@ -441,7 +595,7 @@ const WindowPurchase = () => {
     let totalPrice = 0,
       premiumDiscount = 0;
     selectedSlots.forEach((selectedSlot) => {
-      const packagePrice = selectedSlot.package?.price || 0;
+      const packagePrice = parseInt(selectedSlot.package?.price || 0);
       totalPrice += packagePrice;
     });
     if (isPremium) {
@@ -449,6 +603,7 @@ const WindowPurchase = () => {
       setPremiumDiscount(premiumDiscount);
     }
     setTotalPrice(totalPrice);
+    console.log("Total Price Calculated:", totalPrice);
   }, [selectedSlots, isPremium]);
   console.log("checking", invoiceData);
 
@@ -670,32 +825,34 @@ const WindowPurchase = () => {
                 </Typography>
               </Grid>
 
-              <Button
-                variant="contained"
-                fullWidth
-                onClick={() => {
-                  setCurrentSlotIndex(index); // Set which slot we're editing
-                  setUnlimitedPackageModalOpen(true);
-                  setIsUnlimtedPackageClicked(false);
-                }}
-                sx={{
-                  background:
-                    "linear-gradient(45deg, #667eea 30%, #764ba2 90%)",
-                  color: "white",
-                  py: 1.5,
-                  fontSize: "16px",
-                  fontWeight: "600",
-                  borderRadius: "8px",
-                  "&:hover": {
+              {!selectedSlot?.package?.isUnlimited && (
+                <Button
+                  variant="contained"
+                  fullWidth
+                  onClick={() => {
+                    setCurrentSlotIndex(index);
+                    setUnlimitedPackageModalOpen(true);
+                    setIsUnlimtedPackageClicked(false);
+                  }}
+                  sx={{
                     background:
-                      "linear-gradient(45deg, #5a6fd8 30%, #6a4190 90%)",
-                    transform: "translateY(-1px)",
-                    boxShadow: "0 4px 8px rgba(0,0,0,0.2)",
-                  },
-                }}
-              >
-                📦 Book Unlimited Package
-              </Button>
+                      "linear-gradient(45deg, #667eea 30%, #764ba2 90%)",
+                    color: "white",
+                    py: 1.5,
+                    fontSize: "16px",
+                    fontWeight: "600",
+                    borderRadius: "8px",
+                    "&:hover": {
+                      background:
+                        "linear-gradient(45deg, #5a6fd8 30%, #6a4190 90%)",
+                      transform: "translateY(-1px)",
+                      boxShadow: "0 4px 8px rgba(0,0,0,0.2)",
+                    },
+                  }}
+                >
+                  📦 Book Unlimited Package
+                </Button>
+              )}
               <Grid
                 sx={{
                   width: "100%",
@@ -717,9 +874,61 @@ const WindowPurchase = () => {
                     <UnlimitedPackageModal
                       open={unlimitedPackageModalOpen}
                       onClose={() => setUnlimitedPackageModalOpen(false)}
-                      onSubmit={handleUnlimitedPackageSubmit} 
+                      onSubmit={handleUnlimitedPackageSubmit}
                       packageData={activitiesData}
                     />
+                  ) : selectedSlot?.package?.isUnlimited ? (
+                    // Show selected activities for unlimited package
+                    <Grid
+                      sx={{
+                        width: "100%",
+                        p: 2,
+                        border: "1px solid #ddd",
+                        borderRadius: "8px",
+                        backgroundColor: "#f9f9f9",
+                      }}
+                    >
+                      <Typography
+                        variant="h6"
+                        sx={{ mb: 2, fontWeight: "bold", color: "#667eea" }}
+                      >
+                        Selected Activities - {selectedSlot.package.name}
+                      </Typography>
+                      <Grid sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+                        {selectedSlot.package.activities?.map(
+                          (activity, actIndex) => (
+                            <Box
+                              key={actIndex}
+                              sx={{
+                                backgroundColor: "#667eea",
+                                color: "white",
+                                px: 2,
+                                py: 1,
+                                borderRadius: "16px",
+                                fontSize: "14px",
+                                fontWeight: "500",
+                              }}
+                            >
+                              {activity.name} (₹{activity.price})
+                            </Box>
+                          )
+                        )}
+                      </Grid>
+                      <Typography sx={{ mt: 2, fontWeight: "bold" }}>
+                        Total Package Price: ₹{selectedSlot.package.price}
+                      </Typography>
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        sx={{ mt: 1 }}
+                        onClick={() => {
+                          setCurrentSlotIndex(index);
+                          setUnlimitedPackageModalOpen(true);
+                        }}
+                      >
+                        Edit Activities
+                      </Button>
+                    </Grid>
                   ) : (
                     <FormControl fullWidth>
                       <InputLabel>Select Package</InputLabel>

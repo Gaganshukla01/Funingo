@@ -5,6 +5,9 @@ import {
   FormControl,
   Grid,
   TextField,
+  Select,
+  MenuItem,
+  InputLabel,
 } from "@mui/material";
 import { Dialog, DialogContentText } from "@mui/material";
 import React, { useState } from "react";
@@ -15,9 +18,16 @@ const ComplimentaryDialog = ({ phoneNumber, open, onClose }) => {
   const dispatch = useDispatch();
 
   const [complementaryCoins, setComplementaryCoins] = useState(0);
+  const [description, setDescription] = useState(""); // New state for description
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState(false);
+
+  // Description options
+  const descriptionOptions = [
+    { value: "DISPUTE", label: "DISPUTE" },
+    { value: "PACKAGE", label: "PACKAGE" },
+  ];
 
   const handleAddComplementaryCoins = async (coins) => {
     setLoading(true);
@@ -25,11 +35,13 @@ const ComplimentaryDialog = ({ phoneNumber, open, onClose }) => {
       addComplementaryCoins({
         phone_no: "+91-" + phoneNumber,
         coins,
+        description, 
       })
     );
     console.log("resp from complimentary", resp);
     if (resp.type === "add/complementary/coins/fulfilled") {
       setComplementaryCoins(0);
+      setDescription(""); 
       setSuccess(true);
     } else {
       setSuccess(false);
@@ -38,8 +50,16 @@ const ComplimentaryDialog = ({ phoneNumber, open, onClose }) => {
     setLoading(false);
   };
 
+  const handleClose = () => {
+    setComplementaryCoins(0);
+    setDescription("");
+    setSuccess(false);
+    setError(false);
+    onClose();
+  };
+
   return (
-    <Dialog open={open} onClose={onClose}>
+    <Dialog open={open} onClose={handleClose}>
       <DialogTitle>Add Complementary Coins</DialogTitle>
       <DialogContent>
         <Grid display={"flex"} flexDirection={"column"} gap={"20px"}>
@@ -57,6 +77,26 @@ const ComplimentaryDialog = ({ phoneNumber, open, onClose }) => {
               }}
             />
           </FormControl>
+
+          {/* Description Dropdown */}
+          <FormControl fullWidth>
+            <InputLabel>Description</InputLabel>
+            <Select
+              value={description}
+              label="Description"
+              onChange={(e) => setDescription(e.target.value)}
+            >
+              <MenuItem value="">
+                <em>Select Description</em>
+              </MenuItem>
+              {descriptionOptions.map((option) => (
+                <MenuItem key={option.value} value={option.value}>
+                  {option.label}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
           <Button
             onClick={() => handleAddComplementaryCoins(complementaryCoins)}
             sx={{
@@ -72,7 +112,7 @@ const ComplimentaryDialog = ({ phoneNumber, open, onClose }) => {
               border: "none",
               outline: "none",
             }}
-            disabled={loading}
+            disabled={loading || !description || complementaryCoins <= 0}
           >
             Add Complementary Coins
           </Button>
