@@ -15,7 +15,6 @@ export const salesFetch = async (req, res) => {
 export const salesLastId = async (req, res) => {
   try {
     const sales = await Sales.find();
-    console.log(sales);
     let nextId = 1;
     const l = sales.length;
     if (sales.length > 0) {

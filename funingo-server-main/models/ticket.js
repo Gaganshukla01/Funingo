@@ -23,21 +23,43 @@ const ticketSchema = new mongoose.Schema(
           type: mongoose.Schema.Types.ObjectId,
           ref: "Package",
         },
+        packageType: {
+          type: String,
+          enum: ["regular", "unlimited"],
+          default: "regular",
+        },
+        unlimitedPackageData: {
+          name: String,
+          price: Number,
+          activities: [
+            {
+              activityId: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "Activity", 
+              },
+              activityName: String,
+              count: {
+                type: Number,
+                default: 1,
+              },
+              price: Number,
+            }
+          ]
+        }
       },
     ],
     premium_types: {
-      type: String, 
+      type: String,
       default: null,
     },
     total_amount: Number,
-    cash_amount:Number,
-    online_amount:Number,
+    cash_amount: Number,
+    online_amount: Number,
     coupon_used: {
       type: String,
       required: false,
     },
-    Cash_amount:Number,
-    
+    Cash_amount: Number,
     user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",

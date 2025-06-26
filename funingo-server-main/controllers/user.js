@@ -548,6 +548,7 @@ export const updateUserType = async (req, res) => {
 export const userUnlimtedAdd = async (req, res) => {
   const { phone, unlimited, activities } = req.body;
   const phone_no = '+91-' + phone;
+  console.log(phone);
 
   try {
     const user = await User.findOne({ phone_no });
@@ -556,56 +557,59 @@ export const userUnlimtedAdd = async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-
     const startOfToday = new Date();
-    
     startOfToday.setHours(0, 0, 0, 0);
-    console.log(startOfToday)
+    console.log(startOfToday);
+    
     const endOfToday = new Date();
     endOfToday.setHours(23, 59, 59, 999);
 
+    // Initialize isUnlimited array if it doesn't exist
+    if (!user.isUnlimited) {
+      user.isUnlimited = [];
+    }
 
-    let todayEntry = user.isUnlimited?.find(entry => {
+    let todayEntry = user.isUnlimited.find(entry => {
       if (!entry.timestamp) return false;
       return entry.timestamp >= startOfToday && entry.timestamp <= endOfToday;
     });
 
     if (todayEntry) {
-   
+      // Update existing entry
       todayEntry.unlimited = unlimited;
-
+      
       if (!Array.isArray(todayEntry.activities)) {
         todayEntry.activities = [];
       }
 
-   
       for (const [name, count] of Object.entries(activities)) {
         const trimmedName = name.trim();
         const activityIndex = todayEntry.activities.findIndex(a => a.name === trimmedName);
 
         if (activityIndex !== -1) {
           todayEntry.activities[activityIndex].count = count;
-          todayEntry.activities[activityIndex].timestamp = new Date();
+          // Don't update timestamp for existing activities, keep original
         } else {
           todayEntry.activities.push({
             name: trimmedName,
             count,
-            timestamp: new Date(),
+            // Don't add individual timestamps to activities
           });
         }
       }
     } else {
-    
-      user.isUnlimited = user.isUnlimited || [];
-      user.isUnlimited.push({
+      // Create new entry for today
+      const newEntry = {
         unlimited,
-        created_at: new Date(),
         activities: Object.entries(activities).map(([name, count]) => ({
           name: name.trim(),
           count,
-          timestamp: new Date(),
+          // No individual timestamps for activities
         })),
-      });
+        timestamp: new Date(), // Add timestamp to the main entry
+      };
+
+      user.isUnlimited.push(newEntry);
     }
 
     await user.save();

@@ -27,10 +27,17 @@ export const bookTicket = async (req, res) => {
     custom_discount,
     count,
   } = req.body;
+
+  console.log("Received details:", JSON.stringify(details, null, 2));
+
   let totalAmount = 0;
   let user = await User.findOne({ phone_no });
 
-  if (user && new Date(user.dob).getTime() !== new Date(dob).getTime()) {
+  if (
+    user &&
+    user.dob &&
+    new Date(user.dob).getTime() !== new Date(dob).getTime()
+  ) {
     throw new ExpressError("DOB doesn't match", 400);
   }
 
@@ -50,20 +57,41 @@ export const bookTicket = async (req, res) => {
   }
 
   let total_coins = 0;
+  let hasUnlimitedPackage = false;
 
   const newDetails = await Promise.all(
     details.map(async (person) => {
-      if (person.package) {
+      console.log("Processing person:", person);
+
+      if (person.packageType === "unlimited" && person.unlimitedPackageData) {
+        hasUnlimitedPackage = true;
+
+        const unlimitedPrice = parseInt(person.unlimitedPackageData.price) || 0;
+        totalAmount += unlimitedPrice;
+
+        total_coins += 0;
+
+        console.log("Added unlimited package price:", unlimitedPrice);
+      } else if (person.package) {
+        console.log("Processing regular package:", person.package);
+
         const pack = await Package.findById(person.package);
-        totalAmount += pack.price;
-        total_coins += pack.coins;
+        if (pack) {
+          totalAmount += pack.price;
+          total_coins += pack.coins;
+          console.log("Added regular package price:", pack.price);
+        }
       }
+
       if (!person.age) delete person.age;
-      if (!person.name) delete person.name;
+      if (!person.person_name) delete person.person_name;
       if (!person.gender) delete person.gender;
+
       return person;
     })
   );
+
+  console.log("Total amount before discounts:", totalAmount);
 
   user.funingo_money += total_coins;
 
@@ -74,12 +102,20 @@ export const bookTicket = async (req, res) => {
       break;
     }
   }
+
   if (isPremium) {
-    totalAmount /= 2;
+    totalAmount = Math.floor(totalAmount / 2);
+    console.log("Applied premium discount, new total:", totalAmount);
   }
 
   if (custom_discount) {
-    totalAmount -= custom_discount;
+    totalAmount -= parseInt(custom_discount);
+    console.log(
+      "Applied custom discount:",
+      custom_discount,
+      "New total:",
+      totalAmount
+    );
   }
 
   if (coupon) {
@@ -89,11 +125,22 @@ export const bookTicket = async (req, res) => {
       updateCouponCount: true,
     });
     totalAmount -= discount.discount;
+    console.log(
+      "Applied coupon discount:",
+      discount.discount,
+      "New total:",
+      totalAmount
+    );
   }
-  console.log("discount", { totalAmount });
 
-  if (totalAmount !== total_amount) {
-    throw new ExpressError("Total amount doesn't match", 400);
+  console.log("Final calculated total:", totalAmount);
+  console.log("Received total_amount:", total_amount);
+
+  if (Math.abs(totalAmount - total_amount) > 0.01) {
+    throw new ExpressError(
+      `Total amount doesn't match. Calculated: ${totalAmount}, Received: ${total_amount}`,
+      400
+    );
   }
 
   const new_short_id = new ShortUniqueId({
@@ -102,7 +149,7 @@ export const bookTicket = async (req, res) => {
 
   const newTicket = new Ticket({
     fun_date: new Date(),
-    total_amount,
+    total_amount: total_amount,
     cash_amount,
     online_amount,
     expired: false,
@@ -118,14 +165,18 @@ export const bookTicket = async (req, res) => {
 
   user.booked_tickets.push(newTicket);
 
+  const transactionDescription = hasUnlimitedPackage
+    ? "UNLIMITED PACKAGE"
+    : "Purchased coins";
+
   const transaction = new Transaction({
     user: user._id,
     coins: total_coins,
     type: "credit",
-    description: "Purchased coins",
+    description: transactionDescription,
   });
-  await transaction.save();
 
+  await transaction.save();
   await newTicket.save();
   await user.save();
 
@@ -148,7 +199,8 @@ export const checkActivityBooking = async (req, res) => {
 };
 
 export const addComplementaryCoins = async (req, res) => {
-  const { phone_no, coins } = req.body;
+  const { phone_no, coins, description } = req.body;
+
   const user = await User.findOne({ phone_no }).populate("booked_tickets");
   if (!user) {
     throw new ExpressError("User not found", 404);
@@ -166,34 +218,45 @@ export const addComplementaryCoins = async (req, res) => {
   ) {
     throw new ExpressError("Ticket is not for today", 400);
   }
-
+  let details=description+" (Complementary Coins)"
   user.funingo_money += coins;
   await user.save();
+  const transaction = new Transaction({
+    user: user._id,
+    coins: coins,
+    type: "credit",
+    description: details,
+  });
+
+  await transaction.save();
+
   res.status(200).send({ success: true, coins: user.funingo_money });
 };
 
-export const addActivity=async(req,res)=>{
-  try{
-    const {name,coins_required}=req.body;
-    if(!name && !coins_required){
-      return res.json({success:false,message:"Please Enter Details"})
+export const addActivity = async (req, res) => {
+  try {
+    const { name, coins_required } = req.body;
+    if (!name && !coins_required) {
+      return res.json({ success: false, message: "Please Enter Details" });
     }
 
-    const activity=new Activity({name:name,coins_required:coins_required})
-    await activity.save()
-    return res.json({success:true,message:activity})
+    const activity = new Activity({
+      name: name,
+      coins_required: coins_required,
+    });
+    await activity.save();
+    return res.json({ success: true, message: activity });
+  } catch {
+    return res.json({ success: false, message: error });
   }
-  catch{
-  return res.json({success:false,message:error})
-  }
-}
+};
 
-export const activityFetch=async (req, res) => {
+export const activityFetch = async (req, res) => {
   try {
     const activities = await Activity.find();
     res.json(activities);
   } catch (error) {
-    console.error('Error fetching activities:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error("Error fetching activities:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
 };
