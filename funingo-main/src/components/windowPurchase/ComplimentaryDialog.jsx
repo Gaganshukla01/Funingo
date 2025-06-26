@@ -11,37 +11,74 @@ import {
 } from "@mui/material";
 import { Dialog, DialogContentText } from "@mui/material";
 import React, { useState } from "react";
+import { apiUrl} from "../../constants";
+import axios from "axios"
 import { addComplementaryCoins } from "../../actions/exployee";
 import { useDispatch } from "react-redux";
-
 const ComplimentaryDialog = ({ phoneNumber, open, onClose }) => {
   const dispatch = useDispatch();
-
   const [complementaryCoins, setComplementaryCoins] = useState(0);
-  const [description, setDescription] = useState(""); // New state for description
+  const [description, setDescription] = useState("");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState(false);
-
-  // Description options
   const descriptionOptions = [
     { value: "DISPUTE", label: "DISPUTE" },
     { value: "PACKAGE", label: "PACKAGE" },
   ];
 
+  const handleAddComplementaryhis = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      throw new Error("Login or SignUp First");
+    }
+    const employeeUser = await axios.get(`${apiUrl}/user/`, {
+      headers: {
+        token: token,
+        "Content-Type": "application/json",
+      },
+    });
+
+    const redeemByEmp = employeeUser.data.user.emp_id;
+    const redeemByEmpPhone = employeeUser.data.user.phone_no;
+    console.log(redeemByEmp, redeemByEmpPhone);
+    console.log(phoneNumber);
+
+    const resCusHistoryAdd = await axios.put(
+      `${apiUrl}/user/addhistory`,
+      {
+        phone_no: phoneNumber.length !== 4 ? "+91-" + phoneNumber : phoneNumber,
+        redeemBy: redeemByEmp,
+        redeemOff:
+          phoneNumber.length !== 4 ? "+91-" + phoneNumber : phoneNumber,
+        coins: complementaryCoins,
+        activity: "Complementary Coins"
+      },
+      {
+        headers: {
+          token: token,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+  };
+
   const handleAddComplementaryCoins = async (coins) => {
     setLoading(true);
+
     const resp = await dispatch(
       addComplementaryCoins({
         phone_no: "+91-" + phoneNumber,
         coins,
-        description, 
+        description,
       })
     );
+    // add comp history
+    handleAddComplementaryhis();
     console.log("resp from complimentary", resp);
     if (resp.type === "add/complementary/coins/fulfilled") {
       setComplementaryCoins(0);
-      setDescription(""); 
+      setDescription("");
       setSuccess(true);
     } else {
       setSuccess(false);

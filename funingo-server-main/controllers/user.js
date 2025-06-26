@@ -96,16 +96,16 @@ export const updateUser = async (req, res) => {
 
 export const historyAdd = async (req, res) => {
   try {
-    let { phone_no, redeemBy, redeemOff, coins, activity } = req.body;
+    let {phone_no, redeemBy, redeemOff, coins, activity } = req.body;
 
-    if (!phone_no || !redeemBy || !redeemOff || !coins || !activity) {
+    if (!phone_no || !redeemBy || !redeemOff || !activity) {
       return res.status(400).json({ success: false, message: "All fields are required." });
     }
-
+    
     if (!phone_no.startsWith("+91-")) {
       phone_no = `+91-${phone_no}`;
     }
-
+  
     const user = await User.findOneAndUpdate(
       { phone_no },
       {

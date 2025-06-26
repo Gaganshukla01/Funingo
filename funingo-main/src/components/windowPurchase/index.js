@@ -450,6 +450,27 @@ const WindowPurchase = () => {
         : null,
     }));
 
+    const calculateCoins = () => {
+      let totalCoins = 0;
+
+      selectedSlots.forEach((slot) => {
+        if (slot.package.isUnlimited) {
+          totalCoins += 0;
+        } else {
+    
+          totalCoins += slot.package?.coins || 0;
+        }
+      });
+
+      return totalCoins;
+    };
+
+    const coinsToSend = calculateCoins();
+
+    const hasUnlimitedPackage = selectedSlots.some(
+      (slot) => slot.package.isUnlimited
+    );
+
     try {
       const response = await windowPurchase({
         count: personCount,
@@ -494,25 +515,29 @@ const WindowPurchase = () => {
 
         const redeemByEmp = employeeUser.data.user.emp_id;
         const redeemByEmpPhone = employeeUser.data.user.phone_no;
-        console.log(redeemByEmp,redeemByEmpPhone)
-        console.log(phoneNumber)
+        console.log(redeemByEmp, redeemByEmpPhone);
+        console.log(phoneNumber);
 
-                const resCusHistoryAdd = await axios.put(
-                  `${apiUrl}/user/addhistory`,
-                  {
-                    phone_no: phoneNumber.length !== 4 ? "+91-" + phoneNumber : phoneNumber,
-                    redeemBy: redeemByEmp,
-                    redeemOff: phoneNumber.length !== 4 ? "+91-" + phoneNumber : phoneNumber,
-                    coins: 0,
-                    activity: "Window Recharge",
-                  },
-                  {
-                    headers: {
-                      token: token,
-                      "Content-Type": "application/json",
-                    },
-                  }
-                );
+        const resCusHistoryAdd = await axios.put(
+          `${apiUrl}/user/addhistory`,
+          {
+            phone_no:
+              phoneNumber.length !== 4 ? "+91-" + phoneNumber : phoneNumber,
+            redeemBy: redeemByEmp,
+            redeemOff:
+              phoneNumber.length !== 4 ? "+91-" + phoneNumber : phoneNumber,
+            coins: coinsToSend,
+            activity: hasUnlimitedPackage
+              ? "Window Recharge Unlimited"
+              : "Window Recharge",
+          },
+          {
+            headers: {
+              token: token,
+              "Content-Type": "application/json",
+            },
+          }
+        );
 
         toast.success(
           `🎉 Ticket booked successfully! Ticket ID: ${response.short_id}`,
@@ -570,7 +595,6 @@ const WindowPurchase = () => {
           `${apiUrl}/activity/activityfetch`
         );
         setActivities(activitiesRes.data);
-        console.log(activitiesRes, "allactivity");
         const response = await axios.get(`${apiUrl}/package`);
         if (!response.data.success) {
           throw new Error("Couldn't Fetch Packages");
