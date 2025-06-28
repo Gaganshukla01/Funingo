@@ -2,9 +2,13 @@ import React, { useEffect, useState } from "react";
 import { validatePhoneNumber } from "../../utils/validators/validate";
 import shortid from "shortid";
 import axios from "axios";
+import html2pdf from "html2pdf.js";
 import { apiUrl, flag_prices, payment_modes } from "../../constants";
 import Coin from "../admin/Coin";
+import Invoice from "../invoice";
+import UnlimitedPackageModal from "./UnlimitedPackageModal";
 import { getDiscount } from "../../actions/ticket";
+import { toast } from "react-toastify";
 import {
   TextField,
   InputLabel,
@@ -23,6 +27,7 @@ import DeleteForeverIcon from "@mui/icons-material/DeleteForever";
 import ListedOptionLayout from "./ListedOptionLayout";
 import { addComplementaryCoins, windowPurchase } from "../../actions/exployee";
 import { useDispatch, useSelector } from "react-redux";
+import { selectUserType } from "../../utils/store/slice/userSlice";
 import { useNavigate } from "react-router-dom";
 import ReactSelect from "react-select";
 import ConfirmationModal from "./modal";
@@ -34,10 +39,10 @@ import statesData, { localityData } from "../auth/states";
 import ComplimentaryDialog from "./ComplimentaryDialog";
 import moment from "moment";
 import { amber } from "@mui/material/colors";
-
 const WindowPurchase = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const userType = useSelector(selectUserType);
 
   const [selectedSlots, setSelectedSlots] = useState([
     {
@@ -47,6 +52,7 @@ const WindowPurchase = () => {
       gender: "",
     },
   ]);
+
   const [couponDiscount, setCouponDiscount] = useState({});
   const [code, setCode] = useState("");
   const [count, setCount] = useState(1);
@@ -58,9 +64,12 @@ const WindowPurchase = () => {
   const [helperText, setHelperText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [packageData, setPackageData] = useState([]);
+  const [activitiesData, setActivities] = useState();
   const { token } = useSelector((state) => state.userSlice);
   const [shortId, setShortId] = useState(null);
   const [paymentMode, setPaymentMode] = useState(null);
+  const [showExtraField, setExtraField] = useState(false);
+  const [currentSlotIndex, setCurrentSlotIndex] = useState(0);
   const [cashAmount, setcashAmount] = useState(null);
   const [onlineAmount, setonlineAmount] = useState(null);
   const [confirmationModalOpen, setConfirmationModalOpen] = useState(false);
@@ -73,8 +82,14 @@ const WindowPurchase = () => {
   const [isPremium, setIsPremium] = useState(false);
   const [premiumDiscount, setPremiumDiscount] = useState(0);
   const [customDiscount, setCustomDiscount] = useState(0);
+  const [invoiceData, setInvoiceData] = useState(null);
+  const [isUnlimtedPackageClicked, setIsUnlimtedPackageClicked] =
+    useState(true);
   const [complementaryCoinsModalOpen, setComplementaryCoinsModalOpen] =
     useState(false);
+  const [unlimitedPackageModalOpen, setUnlimitedPackageModalOpen] =
+    useState(false);
+  const [unlimitedPackageData, setUnlimitedPackageData] = useState(null);
 
   const [address, setAddress] = useState({
     state: "Madhya Pradesh",
@@ -120,6 +135,80 @@ const WindowPurchase = () => {
 
   const handleDobChange = (e) => {
     setDob(e.target.value);
+  };
+
+  // setting data to update in user section
+  const updateUnlimitedPackage = async (phoneNumber, unlimitedData) => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("Login or SignUp First");
+      }
+
+      const headers = {
+        token: token,
+        "Content-Type": "application/json",
+      };
+
+      const activitiesObj = {};
+      unlimitedData.activities.forEach((activity) => {
+        activitiesObj[activity.name] = activity.count || activity.quantity || 1;
+      });
+
+      const payload = {
+        phone: phoneNumber,
+        unlimited: true,
+        activities: activitiesObj,
+      };
+
+      const response = await axios.put(
+        `${apiUrl}/user/unlimitedupdate`,
+        payload,
+        { headers }
+      );
+
+      return response.data;
+    } catch (error) {
+      console.error("Error updating unlimited package:", error);
+      throw error;
+    }
+  };
+
+  const handleUnlimitedPackageSubmit = async (selectedActivities) => {
+    console.log("Selected Activities:", selectedActivities);
+
+    try {
+      if (phoneNumber) {
+        await updateUnlimitedPackage(phoneNumber, selectedActivities);
+        console.log("Unlimited package updated successfully");
+      }
+
+      setUnlimitedPackageData(selectedActivities);
+
+      setSelectedSlots((prevSlots) =>
+        prevSlots.map((slot, index) =>
+          index === currentSlotIndex
+            ? {
+                ...slot,
+                package: {
+                  _id: "UNLIMITED_PACKAGE",
+                  name: "UNLIMITED PACKAGE",
+                  price:
+                    selectedActivities.packageAmount ||
+                    selectedActivities.totalPrice,
+                  activities: selectedActivities.activities,
+                  isUnlimited: true,
+                },
+              }
+            : slot
+        )
+      );
+
+      setUnlimitedPackageModalOpen(false);
+    } catch (error) {
+      console.error("Error submitting unlimited package:", error);
+      setError("Failed to update unlimited package. Please try again.");
+    }
   };
 
   const handleCheckClick = () => {
@@ -250,9 +339,7 @@ const WindowPurchase = () => {
       const packagePrice = selectedSlot.package?.price || 0;
       totalPrice += packagePrice;
     });
-    // setGstPrice(Math.round((0.18 * totalPrice + Number.EPSILON) * 100) / 100);
-    // totalPrice += 0.18 * totalPrice;
-    // totalPrice = Math.round((totalPrice + Number.EPSILON) * 100) / 100;
+
     if (premiumDiscount) setPremiumDiscount(totalPrice / 2);
     setTotalPrice(totalPrice);
   };
@@ -280,35 +367,109 @@ const WindowPurchase = () => {
 
   // split payment logic
   const handleCashAmountChange = (e) => {
-    const value = e.target.value || 0 ;
-    if (totalPrice-value > 0) {
-      setonlineAmount(totalPrice - value); 
-    } 
+    const value = e.target.value || 0;
+    setcashAmount(value);
+    if (totalPrice - value > 0) {
+      setonlineAmount(totalPrice - value);
+    } else {
+      setonlineAmount(onlineAmount);
+    }
   };
-  
+
   const handleOnlineAmountChange = (e) => {
-    const value =e.target.value || 0 ;
-    if (totalPrice-value>0) {
-      setcashAmount(totalPrice - value); 
-    } 
+    const value = e.target.value || 0;
+    setonlineAmount(value);
+    if (totalPrice - value > 0) {
+      setcashAmount(totalPrice - value);
+    } else {
+      setcashAmount(cashAmount);
+    }
   };
 
   const handlePackageDataResponse = (data) => {
     setPackageData(
-      data.map((item, index) => {
-        const obj = {
+      data
+        .filter((item) => {
+          return userType == "admin" || item.name !== "UNLIMITED";
+        })
+        .map((item) => ({
           ...item,
           id: item?._id,
-        };
-        return obj;
-      })
+        }))
     );
   };
+
+  // reset values
+
+  const resetForm = () => {
+    setSelectedSlots([
+      {
+        package: "",
+        person_name: "",
+        age: "",
+        gender: "",
+      },
+    ]);
+    setCount(1);
+    setPersonCount(1);
+    setTotalPrice(0);
+    setPhoneNumber("");
+    setName("");
+    setDob("");
+    setCode("");
+    setCouponDiscount({});
+    setPaymentMode(null);
+    setExtraField(false);
+    setcashAmount(null);
+    setonlineAmount(null);
+    setCustomDiscount(0);
+    setPremiumDiscount(0);
+    setIsPremium(false);
+    setExistingFuningoMoney(0);
+    setError("");
+    setFetchUserError("");
+    setUnlimitedPackageData(null);
+    setAddress({
+      state: "Madhya Pradesh",
+      city: "Jabalpur",
+      locality: "",
+    });
+  };
+
   const handlePurchase = async (callback) => {
     const details = selectedSlots.map((data) => ({
       ...data,
-      package: data.package._id,
+      package: data.package.isUnlimited ? null : data.package._id,
+      packageType: data.package.isUnlimited ? "unlimited" : "regular",
+      unlimitedPackageData: data.package.isUnlimited
+        ? {
+            activities: data.package.activities,
+            price: data.package.price,
+            name: data.package.name,
+          }
+        : null,
     }));
+
+    const calculateCoins = () => {
+      let totalCoins = 0;
+
+      selectedSlots.forEach((slot) => {
+        if (slot.package.isUnlimited) {
+          totalCoins += 0;
+        } else {
+    
+          totalCoins += slot.package?.coins || 0;
+        }
+      });
+
+      return totalCoins;
+    };
+
+    const coinsToSend = calculateCoins();
+
+    const hasUnlimitedPackage = selectedSlots.some(
+      (slot) => slot.package.isUnlimited
+    );
 
     try {
       const response = await windowPurchase({
@@ -318,13 +479,12 @@ const WindowPurchase = () => {
           premiumDiscount -
           (couponDiscount.discount || 0) -
           customDiscount,
-        cash_amount:cashAmount,
-        online_amount:onlineAmount,
+        cash_amount: cashAmount,
+        online_amount: onlineAmount,
         details,
         token,
         phone_no: phoneNumber ? "+91-" + phoneNumber : undefined,
         payment_mode: paymentMode.value,
-
         coupon: code,
         dob,
         name,
@@ -332,15 +492,88 @@ const WindowPurchase = () => {
       });
 
       if (response.success) {
+        const newInvoiceData = {
+          invoiceNumber: response.short_id,
+          invoiceDate: new Date().toLocaleDateString(),
+          cashAmount: cashAmount,
+          onlineAmount: onlineAmount,
+          paymentMethod: paymentMode.label,
+          totalAmount: totalPrice,
+        };
+
+        setInvoiceData(newInvoiceData);
+        console.log(response.short_id, "ticketId");
         setShortId(response.short_id);
+
+        // get current user
+        const employeeUser = await axios.get(`${apiUrl}/user/`, {
+          headers: {
+            token: token,
+            "Content-Type": "application/json",
+          },
+        });
+
+        const redeemByEmp = employeeUser.data.user.emp_id;
+        const redeemByEmpPhone = employeeUser.data.user.phone_no;
+        console.log(redeemByEmp, redeemByEmpPhone);
+        console.log(phoneNumber);
+
+        const resCusHistoryAdd = await axios.put(
+          `${apiUrl}/user/addhistory`,
+          {
+            phone_no:
+              phoneNumber.length !== 4 ? "+91-" + phoneNumber : phoneNumber,
+            redeemBy: redeemByEmp,
+            redeemOff:
+              phoneNumber.length !== 4 ? "+91-" + phoneNumber : phoneNumber,
+            coins: coinsToSend,
+            activity: hasUnlimitedPackage
+              ? "Window Recharge Unlimited"
+              : "Window Recharge",
+          },
+          {
+            headers: {
+              token: token,
+              "Content-Type": "application/json",
+            },
+          }
+        );
+
+        toast.success(
+          `🎉 Ticket booked successfully! Ticket ID: ${response.short_id}`,
+          {
+            position: "top-right",
+            autoClose: 5000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+          }
+        );
+
+        setTimeout(() => {
+          resetForm();
+        }, 2000);
+
         callback?.(response.short_id);
-        // setConfirmationModalOpen(false);
       }
     } catch (error) {
-      // Handle the error here, e.g., display an error message to the user or log the error for troubleshooting
-      console.error("Please fill all the fields", error);
+      toast.error("Please fill all the fields", error);
       setError(error?.response?.data?.error);
-      // Add your error handling logic here
+
+      toast.error(
+        `❌ ${
+          error?.response?.data?.error || "Booking failed. Please try again."
+        }`,
+        {
+          position: "top-right",
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        }
+      );
     }
   };
 
@@ -358,12 +591,20 @@ const WindowPurchase = () => {
     async function fetchData() {
       try {
         setIsLoading(true);
+        const activitiesRes = await axios.get(
+          `${apiUrl}/activity/activityfetch`
+        );
+        setActivities(activitiesRes.data);
         const response = await axios.get(`${apiUrl}/package`);
         if (!response.data.success) {
           throw new Error("Couldn't Fetch Packages");
         }
 
-        handlePackageDataResponse(response.data.packages);
+        // logic to handle unlimted package
+        let rawData = response.data.packages;
+
+        handlePackageDataResponse(rawData);
+
         setIsLoading(false);
       } catch (error) {
         console.error(error.message, error);
@@ -378,7 +619,7 @@ const WindowPurchase = () => {
     let totalPrice = 0,
       premiumDiscount = 0;
     selectedSlots.forEach((selectedSlot) => {
-      const packagePrice = selectedSlot.package?.price || 0;
+      const packagePrice = parseInt(selectedSlot.package?.price || 0);
       totalPrice += packagePrice;
     });
     if (isPremium) {
@@ -386,7 +627,9 @@ const WindowPurchase = () => {
       setPremiumDiscount(premiumDiscount);
     }
     setTotalPrice(totalPrice);
+    console.log("Total Price Calculated:", totalPrice);
   }, [selectedSlots, isPremium]);
+  console.log("checking", invoiceData);
 
   return (
     <Grid
@@ -444,22 +687,6 @@ const WindowPurchase = () => {
             alignItems: "center",
           }}
         >
-          {/* <FormControl sx={{ width: { xs: "100%", lg: "50%" } }}>
-            <TextField
-              label="Select the number of options"
-              type="number"
-              value={count}
-              onChange={handleCountChange}
-            />
-          </FormControl> */}
-          {/* <FormControl sx={{ width: { xs: '100%', lg: '50%' } }}>
-            <TextField
-              label='Discount'
-              type='number'
-              value={discount}
-              onChange={handlediscountChange}
-            />
-          </FormControl> */}
           <FormControl sx={{ width: { xs: "100%", lg: "50%" } }}>
             <p style={{ fontSize: "14px", fontWeight: "500" }}>Phone Number</p>
             <TextField
@@ -488,7 +715,7 @@ const WindowPurchase = () => {
             {fetchUserError && (
               <Typography color={"red"}>{fetchUserError}</Typography>
             )}
-            {/* <Typography>Available: {existingFuningoMoney}</Typography> */}
+
             <FormHelperText error={!isValid}>
               {!isValid && helperText}
             </FormHelperText>
@@ -622,6 +849,34 @@ const WindowPurchase = () => {
                 </Typography>
               </Grid>
 
+              {!selectedSlot?.package?.isUnlimited && (
+                <Button
+                  variant="contained"
+                  fullWidth
+                  onClick={() => {
+                    setCurrentSlotIndex(index);
+                    setUnlimitedPackageModalOpen(true);
+                    setIsUnlimtedPackageClicked(false);
+                  }}
+                  sx={{
+                    background:
+                      "linear-gradient(45deg, #667eea 30%, #764ba2 90%)",
+                    color: "white",
+                    py: 1.5,
+                    fontSize: "16px",
+                    fontWeight: "600",
+                    borderRadius: "8px",
+                    "&:hover": {
+                      background:
+                        "linear-gradient(45deg, #5a6fd8 30%, #6a4190 90%)",
+                      transform: "translateY(-1px)",
+                      boxShadow: "0 4px 8px rgba(0,0,0,0.2)",
+                    },
+                  }}
+                >
+                  📦 Book Unlimited Package
+                </Button>
+              )}
               <Grid
                 sx={{
                   width: "100%",
@@ -638,30 +893,94 @@ const WindowPurchase = () => {
                     gap: "10px",
                   }}
                 >
-                  <FormControl fullWidth>
-                    <InputLabel>Select Package</InputLabel>
-                    <Select
-                      label="Select Package"
-                      value={
-                        selectedSlot?.package === "" ? "" : selectedSlot.package
-                      }
-                      onChange={(e) => handlePackageSelectChange(e, index)}
+                  {/* for unlimted package booking */}
+                  {unlimitedPackageModalOpen ? (
+                    <UnlimitedPackageModal
+                      open={unlimitedPackageModalOpen}
+                      onClose={() => setUnlimitedPackageModalOpen(false)}
+                      onSubmit={handleUnlimitedPackageSubmit}
+                      packageData={activitiesData}
+                    />
+                  ) : selectedSlot?.package?.isUnlimited ? (
+                    // Show selected activities for unlimited package
+                    <Grid
+                      sx={{
+                        width: "100%",
+                        p: 2,
+                        border: "1px solid #ddd",
+                        borderRadius: "8px",
+                        backgroundColor: "#f9f9f9",
+                      }}
                     >
-                      <MenuItem value="">
-                        <em>
-                          {getAvailablePackageOptions &&
-                          getAvailablePackageOptions.length === 0
-                            ? "Deselect packages"
-                            : "None"}
-                        </em>
-                      </MenuItem>
-                      {getAvailablePackageOptions(index).map((option, i) => (
-                        <MenuItem key={i} value={option}>
-                          <ListedOptionLayout data={option} />
+                      <Typography
+                        variant="h6"
+                        sx={{ mb: 2, fontWeight: "bold", color: "#667eea" }}
+                      >
+                        Selected Activities - {selectedSlot.package.name}
+                      </Typography>
+                      <Grid sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+                        {selectedSlot.package.activities?.map(
+                          (activity, actIndex) => (
+                            <Box
+                              key={actIndex}
+                              sx={{
+                                backgroundColor: "#667eea",
+                                color: "white",
+                                px: 2,
+                                py: 1,
+                                borderRadius: "16px",
+                                fontSize: "14px",
+                                fontWeight: "500",
+                              }}
+                            >
+                              {activity.name} (₹{activity.price})
+                            </Box>
+                          )
+                        )}
+                      </Grid>
+                      <Typography sx={{ mt: 2, fontWeight: "bold" }}>
+                        Total Package Price: ₹{selectedSlot.package.price}
+                      </Typography>
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        sx={{ mt: 1 }}
+                        onClick={() => {
+                          setCurrentSlotIndex(index);
+                          setUnlimitedPackageModalOpen(true);
+                        }}
+                      >
+                        Edit Activities
+                      </Button>
+                    </Grid>
+                  ) : (
+                    <FormControl fullWidth>
+                      <InputLabel>Select Package</InputLabel>
+                      <Select
+                        label="Select Package"
+                        value={
+                          selectedSlot?.package === ""
+                            ? ""
+                            : selectedSlot.package
+                        }
+                        onChange={(e) => handlePackageSelectChange(e, index)}
+                      >
+                        <MenuItem value="">
+                          <em>
+                            {getAvailablePackageOptions &&
+                            getAvailablePackageOptions.length === 0
+                              ? "Deselect packages"
+                              : "None"}
+                          </em>
                         </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
+                        {getAvailablePackageOptions(index).map((option, i) => (
+                          <MenuItem key={i} value={option}>
+                            <ListedOptionLayout data={option} />
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  )}
                 </Grid>
                 <Grid
                   sx={{
@@ -670,30 +989,7 @@ const WindowPurchase = () => {
                     flexDirection: "column",
                     gap: "10px",
                   }}
-                >
-                  {/* <FormControl fullWidth>
-                    <InputLabel>Select Freebies</InputLabel>
-                    <Select
-                      label='Select Freebies'
-                      value={selectedSlot.freebies}
-                      onChange={e => handleFreebiesSelectChange(e, index)}
-                    >
-                      <MenuItem value=''>
-                        <em>
-                          {getAvailableFreebiesOptions &&
-                          getAvailableFreebiesOptions.length === 0
-                            ? 'No Freebies Available Now'
-                            : 'None'}
-                        </em>
-                      </MenuItem>
-                      {getAvailableFreebiesOptions(index).map((option, i) => (
-                        <MenuItem key={i} value={option.id}>
-                          <ListedOptionLayout data={option} boolFlag={false} />
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl> */}
-                </Grid>
+                ></Grid>
               </Grid>
 
               <Grid width={"100%"}>
@@ -826,63 +1122,6 @@ const WindowPurchase = () => {
             <Typography>Rs {totalPrice - gstPrice} </Typography>
           </Grid>
 
-          {/* <Grid width={"100%"} mb={"15px"} gap={"0px"}>
-                <label className="book-now-label">Promo Code</label>
-                <TextField
-                  fullWidth
-                  sx={{
-                    background: "white",
-                    borderRadius: "5px",
-                    mt: "5px",
-                    zIndex: 0,
-                    "&:hover": {
-                      "& fieldset": {
-                        borderColor: "rgba(0, 0, 0, 0.23)",
-                      },
-                    },
-                  }}
-                  placeholder="Have a promo code?"
-                  value={code}
-                  onChange={(e) => setCode(e.target.value)}
-                  InputProps={{
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <Button onClick={() => getDiscountUsingCoupon()}>
-                          Apply
-                        </Button>
-                      </InputAdornment>
-                    ),
-                  }}
-                  inputProps={{
-                    sx: {
-                      border: "none !important",
-                      zIndex: "0 !important",
-                    },
-                  }}
-                />
-                {!!couponDiscount.message && (
-                  <Typography
-                    sx={{
-                      color: "red",
-                      fontSize: "12px",
-                      mt: "5px",
-                    }}
-                  >
-                    {couponDiscount.message}
-                  </Typography>
-                )}
-                {!!couponDiscount.discount && (
-                  <Typography
-                    sx={{
-                      color: "green",
-                      fontSize: "12px",
-                      mt: "5px",
-                    }}
-                  >
-                    Promo code applied!!
-                  </Typography>
-                )}
-              </Grid> */}
           <Grid
             width={"100%"}
             display={"flex"}
@@ -896,15 +1135,6 @@ const WindowPurchase = () => {
                 customDiscount}
             </Typography>
           </Grid>
-          {/* <Grid
-            width={"100%"}
-            display={"flex"}
-            justifyContent={"space-between"}
-            paddingBottom={"3px"}
-          >
-            <Typography>Gst@18% </Typography>
-            <Typography>Rs {gstPrice} </Typography>
-          </Grid> */}
 
           <hr width={"100%"} />
 
@@ -989,6 +1219,12 @@ const WindowPurchase = () => {
               options={paymentModes}
               onChange={(e) => {
                 setPaymentMode(e);
+                // for enable Field of cash And Online
+                if (e.value && e.value === " Cash Online") {
+                  setExtraField(true);
+                } else {
+                  setExtraField(false);
+                }
               }}
               placeholder="Payment mode"
               value={paymentMode}
@@ -1001,33 +1237,38 @@ const WindowPurchase = () => {
               isClearable={false}
             />
           </Grid>
-  <div style={{
-    display: "flex",
-    justifyContent: "space-between",
-    marginBottom: "10px",
-  }}>
-    <Grid>
-      <Typography>Enter Cash Amount</Typography>
-      <TextField
-        type="number"
-        value={cashAmount} 
-        onChange={handleCashAmountChange } 
-        min={0}
-      />
-    </Grid>
 
-    <Grid>
-      <Typography>Enter Online Amount</Typography>
-      <TextField
-        type="number"
-        value={onlineAmount} 
-        onChange={handleOnlineAmountChange}
-        min={0}
-      />
-    </Grid>
-  </div>
+          {/* for cash and online amount */}
+          {showExtraField && (
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                marginBottom: "10px",
+              }}
+            >
+              <Grid>
+                <Typography>Enter Cash Amount</Typography>
+                <TextField
+                  type="number"
+                  value={cashAmount}
+                  onChange={handleCashAmountChange}
+                  min={0}
+                />
+              </Grid>
 
-         
+              <Grid>
+                <Typography>Enter Online Amount</Typography>
+                <TextField
+                  type="number"
+                  value={onlineAmount}
+                  onChange={handleOnlineAmountChange}
+                  min={0}
+                />
+              </Grid>
+            </div>
+          )}
+
           {shortId ? (
             <Box
               sx={{
@@ -1045,25 +1286,27 @@ const WindowPurchase = () => {
                   navigate(`/we/get-qr-tickets?tid=${shortId}`);
                   scrollToTop();
                 }}
-              > 
+              >
                 Generate QR Tickets
               </Button>
             </Box>
           ) : (
             <>
               <Button
-               onClick={() => handlePurchase()}
+                onClick={() => handlePurchase()}
                 variant="contained"
                 fullWidth
                 disabled={!paymentMode || count === 0 || phoneNumber === ""}
               >
                 Buy Now
               </Button>
+
               <FormHelperText error>{error}</FormHelperText>
             </>
           )}
         </Grid>
       </Grid>
+      {invoiceData && <Invoice invoiceData={invoiceData} />}
     </Grid>
   );
 };

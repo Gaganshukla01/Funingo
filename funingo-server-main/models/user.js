@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 
+
 const userSchema = new mongoose.Schema(
   {
     first_name: String,
@@ -38,7 +39,7 @@ const userSchema = new mongoose.Schema(
     hash_password: String,
     city: String,
     state: String,
-    locality: String, // If city === 'jabalpur'
+    locality: String,
     verified: Boolean,
     profile_picture: {
       type: String,
@@ -63,6 +64,10 @@ const userSchema = new mongoose.Schema(
       default: "customer",
     },
 
+    emp_id: {
+      type: String,
+      default: "NA",
+    },
     premium: [
       {
         expires_on: {
@@ -90,6 +95,51 @@ const userSchema = new mongoose.Schema(
       type: String,
       unique: true,
     },
+
+    isUnlimited: [ 
+      {
+        unlimited: { 
+          type: Boolean,
+        },
+         timestamp: {
+              type: Date,
+              default: Date.now,
+            },
+        activities: [ 
+          {
+            name: {
+              type: String,
+              required: true, 
+            },
+            count: {
+              type: Number,
+              required: true, 
+            },
+          },
+        ],
+      },
+    ],
+    history: [
+      {
+        redeemBy: {
+          type: String,
+        },
+        redeemOff: {
+          type: String,
+        },
+        coins: {
+          type: String,
+
+        },
+        activity: {
+          type: String,
+        },
+        timestamp: {
+          type: Date,
+          default: Date.now, 
+        },
+      },
+    ],
   },
   {
     versionKey: false,

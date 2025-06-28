@@ -44,7 +44,7 @@ export const windowPurchase = async ({
 
 export const addComplementaryCoins = createAsyncThunk(
   "add/complementary/coins",
-  async ({ phone_no, coins }, { getState }) => {
+  async ({ phone_no, coins , description }, { getState }) => {
     const {
       userSlice: { token },
     } = getState();
@@ -53,6 +53,7 @@ export const addComplementaryCoins = createAsyncThunk(
       {
         phone_no,
         coins,
+        description,
       },
       {
         headers: { token },

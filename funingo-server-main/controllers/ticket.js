@@ -1,9 +1,11 @@
+import axios from "axios";
 import QRTicket from "../models/qr-ticket.js";
 import Coupon from "../models/coupon.js";
 import Ticket from "../models/ticket.js";
 import ExpressError from "../utilities/express-error.js";
 import constants from "../constants.js";
 import Package from "../models/package.js";
+import bwipjs from "bwip-js";
 
 import {
   calculateDiscountPrice,
@@ -20,6 +22,8 @@ import User from "../models/user.js";
 import Activity from "../models/activity.js";
 import Transaction from "../models/transaction.js";
 
+
+
 export const getAllTickets = async (req, res) => {
   const { phone_no } = req.query;
   const tickets =
@@ -33,14 +37,111 @@ export const getAllTickets = async (req, res) => {
   });
 };
 
+// for stander Qr
+// export const getQRTickets = async (req, res) => {
+//   const { phone_no, number_of_tickets, ticket_id } = req.query;
+//   let ticket_count = parseInt(number_of_tickets);
+//   let user;
+//   if (ticket_id) {
+//     const ticket = await Ticket.findOne({ short_id: ticket_id }).populate(
+//       "user"
+//     );
+//     if (!ticket) throw new ExpressError("Ticket not found", 400);
+//     ticket_count = ticket.details.length;
+//     user = ticket.user;
+//   } else {
+//     user = await User.findOne({ phone_no }).populate("booked_tickets");
+//   }
+
+//   if (!user) {
+//     throw new ExpressError("User not found", 404);
+//   }
+
+//   if (Math.floor(user.funingo_money / 2000) < ticket_count) {
+//     throw new ExpressError(
+//       "Minimum required coins need to be 2000 per user",
+//       400
+//     );
+//   }
+
+//   if (!user.short_id) {
+//     const new_short_id = new ShortUniqueId({
+//       dictionary: "alphanum_upper",
+//       length: 4,
+//     });
+//     user.short_id = new_short_id();
+//     await user.save();
+//   }
+
+//   const qr = `http://api.qrserver.com/v1/create-qr-code/?data=${
+//     constants.website_url
+//   }/e/redeem?tid=${user.phone_no.split("-")[1]}`;
+ 
+ 
+//   const finalData = [...Array(ticket_count)].map(() => ({
+//     qr,
+//     phone_no,
+//     short_id: user.short_id,
+//   }));
+
+//   res.status(200).send({
+//     success: true,
+//     tickets: finalData,
+//     total_coins: user.funingo_money,
+//   });
+// };
+
+
+
+
+const shortenUrl = async (longUrl) => {
+  const accessToken = "bb28365113140e0d6d3c5576fb1e89db2ce7244c";  
+  const bitlyApiUrl = "https://api-ssl.bitly.com/v4/shorten";
+
+  try {
+    const response = await axios.post(
+      bitlyApiUrl,
+      { long_url: longUrl },
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      }
+    );
+    return response.data.link;  
+  } catch (error) {
+    console.error("Error shortening URL:", error);
+    return longUrl;  
+  }
+};
+
+
+const generateStandardQRCode = async (barcodeData) => {
+  try {
+    const barcodeBuffer = await bwipjs.toBuffer({
+      bcid: "qrcode",        
+      text: barcodeData,     
+      scale: 1,              
+      height: 10,            
+      includetext: false,   
+      version: 1,            
+      eclevel: "L",          
+    });
+
+    return `data:image/png;base64,${barcodeBuffer.toString("base64")}`;
+  } catch (error) {
+    console.error("Error generating standard QR Code:", error);
+    throw new Error("Error generating standard QR Code");
+  }
+};
+
 export const getQRTickets = async (req, res) => {
   const { phone_no, number_of_tickets, ticket_id } = req.query;
   let ticket_count = parseInt(number_of_tickets);
   let user;
+
   if (ticket_id) {
-    const ticket = await Ticket.findOne({ short_id: ticket_id }).populate(
-      "user"
-    );
+    const ticket = await Ticket.findOne({ short_id: ticket_id }).populate("user");
     if (!ticket) throw new ExpressError("Ticket not found", 400);
     ticket_count = ticket.details.length;
     user = ticket.user;
@@ -52,11 +153,9 @@ export const getQRTickets = async (req, res) => {
     throw new ExpressError("User not found", 404);
   }
 
+  
   if (Math.floor(user.funingo_money / 2000) < ticket_count) {
-    throw new ExpressError(
-      "Minimum required coins need to be 2000 per user",
-      400
-    );
+    throw new ExpressError("Minimum required coins need to be 2000 per user", 400);
   }
 
   if (!user.short_id) {
@@ -68,14 +167,15 @@ export const getQRTickets = async (req, res) => {
     await user.save();
   }
 
-  const qr = `http://api.qrserver.com/v1/create-qr-code/?data=${
-    constants.website_url
-  }/e/redeem?tid=${user.phone_no.split("-")[1]}`;
+  const longUrl = `${constants.website_url}/e/redeem?tid=${user.phone_no.split("-")[1]}`;
+  const shortenedUrl = await shortenUrl(longUrl);
+  const strippedUrl = shortenedUrl.replace(/^https?:\/\//, "");
+  const qrCode = await generateStandardQRCode(strippedUrl);
 
   const finalData = [...Array(ticket_count)].map(() => ({
-    qr,
-    phone_no,
-    short_id: user.short_id,
+    qr: qrCode,        
+    phone_no,          
+    short_id: user.short_id, 
   }));
 
   res.status(200).send({
@@ -84,6 +184,7 @@ export const getQRTickets = async (req, res) => {
     total_coins: user.funingo_money,
   });
 };
+
 
 export const getDiscount = async (req, res) => {
   var { code, total_amount } = req.body;
@@ -202,7 +303,6 @@ export const verifyTicketPayment = async (req, res) => {
   ticket.payment_verified = true;
   await ticket.save();
 
-  // Adding coins (funingo_money) in user profile
   const totalCoins = ticket.details.reduce(
     (total, curr_person) => total + curr_person.package.coins,
     0

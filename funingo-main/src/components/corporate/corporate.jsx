@@ -4,6 +4,7 @@ import { Grid, Typography, Box } from '@mui/material';
 import bg3Light from './images/bg3Light.png';
 import bg3 from './images/bg3.png';
 import './styles.scss';
+import Invoice from '../invoice';
 import { useNavigate } from 'react-router';
 import { scrollToBottom } from '../../utils';
 import { profile1, profile2, profile3, profile4, profileHeading1, profileHeading2, profileHeading3, profileHeading4 } from '../../assets';
@@ -135,7 +136,9 @@ const Corporate = () => {
           </Grid>
         </Grid>
       ))}
+    
     </Grid>
+    
   );
 };
 

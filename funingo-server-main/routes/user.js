@@ -8,12 +8,18 @@ import {
   validateAndUpdatePassword,
   updateUser,
   getFreebies,
+  getAllusers,
   getFuningoCoinsFromPhnNo,
   createPremiumOrder,
   verifyPremiumPayment,
+  userUnlimtedAdd,
   createAddFuningoMoneyOrder,
   verifyAddFuningoMoneyPayment,
   getTransactions,
+  updateUserType,
+  historyAdd,
+  getUserNameByPhone,
+  getAllTransactions
 } from "../controllers/user.js";
 import { authenticateEmployee, authenticateUser } from "../middleware.js";
 const router = express.Router();
@@ -24,8 +30,15 @@ router
   .get(authenticateUser, catchAsync(fetchSelf))
   .put(authenticateUser, catchAsync(updateUser));
 
+
+router.route("/getallusers").get(authenticateUser,getAllusers)
+router.route("/getloginUser").get(authenticateUser,fetchSelf);
+router.route("/addhistory").put(authenticateUser,historyAdd);
 router.route("/login").post(catchAsync(loginUser));
 router.route("/forget-password").post(catchAsync(forgetPassword));
+router.route("/getusername/:phone_no").get(catchAsync(getUserNameByPhone));
+router.route("/updateusertype").put(catchAsync(updateUserType));
+router.route("/unlimitedupdate").put(catchAsync(userUnlimtedAdd));
 router
   .route("/validate-and-update-password")
   .post(catchAsync(validateAndUpdatePassword));
@@ -49,5 +62,6 @@ router
 router.get("/coins/:phone_no", catchAsync(getFuningoCoinsFromPhnNo));
 
 router.get("/transactions", authenticateUser, catchAsync(getTransactions));
+router.get("/getalltransactions", authenticateUser, catchAsync(getAllTransactions));
 
 export default router;

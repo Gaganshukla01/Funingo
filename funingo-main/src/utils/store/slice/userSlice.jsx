@@ -1,7 +1,6 @@
 import { createSlice } from "@reduxjs/toolkit";
 import { getAllTickets, getFreebies } from "../../../actions/ticket";
 import { fetchSelf, getTransactions } from "../../../actions/user";
-
 const capitalizeFirstLetter = (inputString) => {
   return (
     inputString.charAt(0).toUpperCase() + inputString.slice(1).toLowerCase()
@@ -103,6 +102,10 @@ const userSlice = createSlice({
   },
 });
 
+export const selectUserType = (state) => {
+  return state.userSlice.userData?.user_type || null; 
+};
+
 export const {
   addUser,
   removeUser,
@@ -115,4 +118,7 @@ export const {
   removeFreebies,
   setVerified,
 } = userSlice.actions;
+
 export default userSlice.reducer;
+
+

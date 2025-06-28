@@ -367,7 +367,7 @@ const GetQRTickets = () => {
           token,
         },
       });
-      console.log("response", resp);
+      console.log("response", ticketId);
       setQrTicketsData({
         total_coins: resp.data.total_coins,
         tickets: resp.data.tickets,
@@ -531,18 +531,72 @@ const GetQRTickets = () => {
               alignItems={"center"}
               justifyContent={"center"}
             >
-              {/* <div> */}
-              <Typography sx={{ textAlign: "center", fontWeight: "600" }}>
-                {qrTicketsData.tickets?.[current]?.short_id}
-              </Typography>
-              {/* <img
+              {/*qr ticket genration..  */}
+
+              <div style={{ textAlign: "center" }}>
+                <Typography sx={{ fontWeight: "600" }}>{ticketId}</Typography>
+                <img
+                  id="qrCodeImage"
                   src={qrTicketsData.tickets?.[current]?.qr}
                   alt="qr-code"
                   width="150px"
                   height="150px"
-                /> */}
-              {/* </div> */}
-              {/* <Typography>Total Coins: {qrTicketsData.total_coins}</Typography> */}
+                />
+
+                <Button
+                  variant="contained"
+                  sx={{ marginTop: "10px" }}
+                  onClick={async () => {
+                    try {
+                      const qrUrl = qrTicketsData.tickets?.[current]?.qr;
+                      if (!qrUrl) {
+                        console.error("QR code URL is not available.");
+                        return;
+                      }
+
+                      const canvas = document.createElement("canvas");
+                      const ctx = canvas.getContext("2d");
+
+                      // Load the QR code image
+                      const qrImage = new Image();
+                      qrImage.src = qrUrl;
+
+                      qrImage.onload = () => {
+                        canvas.width = qrImage.width+20;
+                        canvas.height = qrImage.height + 50; 
+                        ctx.drawImage(qrImage, 0, 50); 
+
+                        ctx.font = "10px Arial";
+                        ctx.fillStyle = "black";
+                        ctx.textAlign = "right";
+                        ctx.fillText(
+                          `${ticketId}`,
+                          canvas.width/1.5 ,
+                          40
+                        ); 
+
+                        const blob = canvas.toBlob((blob) => {
+                          const blobUrl = URL.createObjectURL(blob);
+                          const link = document.createElement("a");
+                          link.href = blobUrl;
+                          link.setAttribute(
+                            "download",
+                            `QR_Ticket_${ticketId}.png`
+                          );
+                          document.body.appendChild(link);
+                          link.click();
+                          document.body.removeChild(link);
+                          URL.revokeObjectURL(blobUrl);
+                        }, "image/png");
+                      };
+                    } catch (error) {
+                      console.error("Error downloading QR code:", error);
+                    }
+                  }}
+                >
+                  Download QR
+                </Button>
+              </div> 
             </Grid>
             <Grid
               sx={{

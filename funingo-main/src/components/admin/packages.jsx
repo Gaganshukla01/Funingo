@@ -730,6 +730,7 @@ import {
   IconButton,
   TextField,
   Typography,
+  FormControlLabel, 
   styled,
   Button,
   FormHelperText,
@@ -755,6 +756,8 @@ const NumberTextField = styled(TextField)({
 
 const Packages = () => {
   const { token } = useSelector(state => state.userSlice);
+  const [isUnlimited, setIsUnlimited] = useState(false);
+  const [coinValue, setCoinValue] = useState(0);
   const [packages, setPackages] = useState([]);
   const [loading, setLoading] = useState(false);
   const {
@@ -798,6 +801,19 @@ const Packages = () => {
     setLoading(false);
   };
 
+  // unlimted package
+  const handleCheckboxChange = (event) => {
+    const checked = event.target.checked;
+    setIsUnlimited(checked);
+    
+    if (checked) {
+      setCoinValue(999999); 
+      setValue('coins', 999999); 
+    } 
+    else{
+      setValue('coins', 0); 
+    }
+  };
   useEffect(() => {
     fetchPackages();
   }, []);
@@ -948,7 +964,18 @@ const Packages = () => {
               <FormHelperText error>{errors?.name?.message}</FormHelperText>
             )}
           </Box>
+     
           <Box>
+          <FormControlLabel
+        control={
+          <Checkbox
+            checked={isUnlimited}
+            onChange={handleCheckboxChange}
+            color="primary"
+          />
+        }
+        label="Unlimited"
+      />
             {/* <Label>Coins:</Label> */}
             <Grid
               sx={{
@@ -1018,31 +1045,26 @@ const Packages = () => {
                   }}
                 >
                   <b>Coins</b>
-                  {/* yeha h */}
-
-                  {/* <Copyright
-                    sx={{
-                      color: '#fac219',
-                      paddingLeft:'5px'
-                    }}
-                  /> */}
+               
                 <Coin size="5rem" />
-                  
                 </Typography>
                 <NumberTextField
                   type='number'
                   inputProps={{
-                    min: 0
+                    min: 0,
+                    disabled: isUnlimited
                   }}
                   sx={{
                     width: '100px'
                   }}
-                  defaultValue={0}
                   {...register('coins', { required: true })}
                 />
               </Box>
+
+         
             </Grid>
           </Box>
+      
           <Box>
             <Label>Price (in Rupees)</Label>
             <TextField
