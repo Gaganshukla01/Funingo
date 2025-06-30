@@ -13,7 +13,6 @@ import Transaction from "../models/transaction.js";
 import mongoose from "mongoose";
 export const registerUser = async (req, res) => {
   const saltRounds = 10;
-
   const phone_no = req.body.phone_no;
   const user = await User.findOne({ phone_no });
   if (user) {
@@ -307,14 +306,6 @@ export const verifyPremiumPayment = async (req, res) => {
     razorpay_payment_id,
     razorpay_signature,
   } = req.body;
-
-  // ****premium_data format****
-  // [
-  //   {
-  //     expiry: ['6_months', '1_year', '100_years'],
-  //     premium_type: ['50%', '100%']
-  //   }
-  // ]
 
   const { user } = req;
   const resp = validatePaymentVerification(
