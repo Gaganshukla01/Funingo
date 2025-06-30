@@ -22,6 +22,7 @@ import activityRouter from "./routes/activity.js";
 import dataSave from "./routes/data.js";
 import insight from "./routes/statics.js"
 import paymentBill from "./routes/billPayment.js"
+import unlimtedPackage from "./routes/unlimtedPackage.js";
 import uploadS3 from "./routes/uploadtoS3.js"
 import { saveFreebiesAutomationFunction } from "./utilities/utils.js";
 import Ticket from "./models/ticket.js";
@@ -87,6 +88,7 @@ app.use("/data",dataSave)
 app.use("/bill",paymentBill)
 app.use("/s3upload",uploadS3)
 app.use("/insights",insight)
+app.use("/unlimitedPackage", unlimtedPackage);
 
 app.get("/", async (req, res) => {
   res.status(200).send(`Server up and running on ${process.env.NODE_ENV}!`);

@@ -6,7 +6,6 @@ import html2pdf from "html2pdf.js";
 import { apiUrl, flag_prices, payment_modes } from "../../constants";
 import Coin from "../admin/Coin";
 import Invoice from "../invoice";
-import UnlimitedPackageModal from "./UnlimitedPackageModal";
 import { getDiscount } from "../../actions/ticket";
 import { toast } from "react-toastify";
 import {
@@ -21,8 +20,23 @@ import {
   FormHelperText,
   CircularProgress,
   Box,
+  Card,
+  CardContent,
+  Divider,
+  Paper,
+  Chip,
 } from "@mui/material";
-import { Tour } from "@mui/icons-material";
+import {
+  Tour,
+  Add,
+  Remove,
+  LocalOffer,
+  Person,
+  Phone,
+  CalendarToday,
+  AllInclusive,
+  Group,
+} from "@mui/icons-material";
 import DeleteForeverIcon from "@mui/icons-material/DeleteForever";
 import ListedOptionLayout from "./ListedOptionLayout";
 import { addComplementaryCoins, windowPurchase } from "../../actions/exployee";
@@ -35,10 +49,10 @@ import IndividualFlag from "../booknow/individualFlags";
 import { set, useForm } from "react-hook-form";
 import { InputAdornment } from "@mui/material";
 import { scrollToTop } from "../../utils";
-import statesData, { localityData } from "../auth/states";
 import ComplimentaryDialog from "./ComplimentaryDialog";
 import moment from "moment";
 import { amber } from "@mui/material/colors";
+
 const WindowPurchase = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -50,6 +64,8 @@ const WindowPurchase = () => {
       person_name: "",
       age: "",
       gender: "",
+      packageType: "regular", // 'regular' or 'unlimited'
+      unlimitedPackage: "",
     },
   ]);
 
@@ -57,6 +73,7 @@ const WindowPurchase = () => {
   const [code, setCode] = useState("");
   const [count, setCount] = useState(1);
   const [personCount, setPersonCount] = useState(1);
+  const [peopleCount, setPeopleCount] = useState(1); // For unlimited packages
   const [totalPrice, setTotalPrice] = useState(0);
   const [gstPrice, setGstPrice] = useState(0);
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -64,6 +81,7 @@ const WindowPurchase = () => {
   const [helperText, setHelperText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [packageData, setPackageData] = useState([]);
+  const [unlimitedPackageData, setUnlimitedPackageData] = useState([]);
   const [activitiesData, setActivities] = useState();
   const { token } = useSelector((state) => state.userSlice);
   const [shortId, setShortId] = useState(null);
@@ -83,39 +101,15 @@ const WindowPurchase = () => {
   const [premiumDiscount, setPremiumDiscount] = useState(0);
   const [customDiscount, setCustomDiscount] = useState(0);
   const [invoiceData, setInvoiceData] = useState(null);
-  const [isUnlimtedPackageClicked, setIsUnlimtedPackageClicked] =
-    useState(true);
   const [complementaryCoinsModalOpen, setComplementaryCoinsModalOpen] =
     useState(false);
-  const [unlimitedPackageModalOpen, setUnlimitedPackageModalOpen] =
-    useState(false);
-  const [unlimitedPackageData, setUnlimitedPackageData] = useState(null);
-
-  const [address, setAddress] = useState({
-    state: "Madhya Pradesh",
-    city: "Jabalpur",
-    locality: "",
-  });
-
-  const states = Object.keys(statesData).map((state) => ({
-    label: state,
-    value: state,
-  }));
-  const localities = localityData.map((locality) => ({
-    label: locality,
-    value: locality,
-  }));
-  const [cities, setCities] = useState([]);
-
-  useEffect(() => {
-    if (address.state)
-      setCities(
-        statesData[address.state].map((city) => ({
-          label: city,
-          value: city,
-        }))
-      );
-  }, [address.city, address.state]);
+  const [selectedRegularPackages, setSelectedRegularPackages] = useState([]);
+  const [selectedUnlimitedPackages, setSelectedUnlimitedPackages] = useState(
+    []
+  );
+  const [regularPeopleCount, setRegularPeopleCount] = useState(1);
+  const [unlimitedPeopleCount, setUnlimitedPeopleCount] = useState(1);
+  const [selectAllUnlimited, setSelectAllUnlimited] = useState(false);
 
   const paymentModes = payment_modes.map((paymentMode) => ({
     label: paymentMode[0].toUpperCase() + paymentMode.slice(1),
@@ -128,93 +122,145 @@ const WindowPurchase = () => {
     { value: "others", label: "Others" },
   ];
 
+  const packageTypeOptions = [
+    { value: "regular", label: "Regular Package" },
+    { value: "unlimited", label: "Unlimited Package" },
+  ];
+
+  // Convert packages to dropdown options
+  const getRegularPackageOptions = () => {
+    return packageData
+      .filter(
+        (pkg) =>
+          !selectedRegularPackages.find(
+            (selected) => selected.package._id === pkg._id
+          )
+      )
+      .map((pkg) => ({
+        value: pkg._id,
+        label: `${pkg.name} - ₹${pkg.price} (${pkg.coins} coins)`,
+        package: pkg,
+      }));
+  };
+
+  const handleRegularPeopleCountChange = (e) => {
+    const value = parseInt(e.target.value) || 1;
+    if (value > 0 && value <= 50) {
+      setRegularPeopleCount(value);
+    }
+  };
+
+  // Filter unlimited packages for today
+  const getTodayUnlimitedPackages = () => {
+    const today = moment().format("dddd").toLowerCase(); // Get today's day (e.g., 'monday', 'tuesday')
+
+    return unlimitedPackageData.filter((pkg) => {
+      // Check if package is available today - use selectedDays instead of days
+      return pkg.selectedDays && pkg.selectedDays.includes(today);
+    });
+  };
+
+  const handleAddRegularPackage = (selectedOption) => {
+    if (selectedOption) {
+      const exists = selectedRegularPackages.find(
+        (pkg) => pkg.package._id === selectedOption.package._id
+      );
+      if (!exists) {
+        setSelectedRegularPackages((prev) => [
+          ...prev,
+          { package: selectedOption.package },
+        ]);
+      }
+    }
+  };
+
+  const handleRemoveRegularPackage = (packageId) => {
+    setSelectedRegularPackages((prev) =>
+      prev.filter((item) => item.package._id !== packageId)
+    );
+  };
+
+  // Handle unlimited package selection (only one can be selected)
+  const handleSelectUnlimitedPackage = (pkg) => {
+    setSelectedUnlimitedPackages((prev) => {
+      const exists = prev.find((item) => item.package._id === pkg._id);
+      if (exists) {
+        return prev.filter((item) => item.package._id !== pkg._id);
+      } else {
+        return [...prev, { package: pkg, count: 1 }];
+      }
+    });
+  };
+
+  const handleSelectAllUnlimited = () => {
+    const todayPackages = getTodayUnlimitedPackages();
+
+    if (selectAllUnlimited) {
+      // Deselect all
+      setSelectedUnlimitedPackages([]);
+      setSelectAllUnlimited(false);
+    } else {
+      // Select all with default count of 1
+      const allPackages = todayPackages.map((pkg) => ({
+        package: pkg,
+        count: 1,
+      }));
+      setSelectedUnlimitedPackages(allPackages);
+      setSelectAllUnlimited(true);
+    }
+  };
+
+  const handleUnlimitedPackageCountChange = (packageId, direction) => {
+    setSelectedUnlimitedPackages((prev) =>
+      prev.map((item) => {
+        if (item.package._id === packageId) {
+          const newCount =
+            direction === "increase"
+              ? Math.min(item.count + 1, 20)
+              : Math.max(item.count - 1, 1);
+          return { ...item, count: newCount };
+        }
+        return item;
+      })
+    );
+  };
+
+  // Handle people count change
+  const handlePeopleCountChange = (e) => {
+    const value = parseInt(e.target.value) || 1;
+    if (value > 0 && value <= 20) {
+      setPeopleCount(value);
+      setUnlimitedPeopleCount(value); // Keep them in sync
+    }
+  };
+
+  // Get activity names and counts for display
+  const getActivityDisplay = (activities) => {
+    if (!activities || !Array.isArray(activities)) return "";
+
+    return activities
+      .map((activity) => {
+        const count = activity.count === 999 ? "∞" : activity.count;
+        return `${activity.name} (${count})`;
+      })
+      .join(", ");
+  };
+
   const handlePhoneNumberChange = (e) => {
     setPhoneNumber(e.target.value);
     setIsValid(true);
+    setFetchUserError(""); // Clear previous errors
   };
 
   const handleDobChange = (e) => {
     setDob(e.target.value);
   };
 
-  // setting data to update in user section
-  const updateUnlimitedPackage = async (phoneNumber, unlimitedData) => {
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        throw new Error("Login or SignUp First");
-      }
-
-      const headers = {
-        token: token,
-        "Content-Type": "application/json",
-      };
-
-      const activitiesObj = {};
-      unlimitedData.activities.forEach((activity) => {
-        activitiesObj[activity.name] = activity.count || activity.quantity || 1;
-      });
-
-      const payload = {
-        phone: phoneNumber,
-        unlimited: true,
-        activities: activitiesObj,
-      };
-
-      const response = await axios.put(
-        `${apiUrl}/user/unlimitedupdate`,
-        payload,
-        { headers }
-      );
-
-      return response.data;
-    } catch (error) {
-      console.error("Error updating unlimited package:", error);
-      throw error;
-    }
-  };
-
-  const handleUnlimitedPackageSubmit = async (selectedActivities) => {
-    console.log("Selected Activities:", selectedActivities);
-
-    try {
-      if (phoneNumber) {
-        await updateUnlimitedPackage(phoneNumber, selectedActivities);
-        console.log("Unlimited package updated successfully");
-      }
-
-      setUnlimitedPackageData(selectedActivities);
-
-      setSelectedSlots((prevSlots) =>
-        prevSlots.map((slot, index) =>
-          index === currentSlotIndex
-            ? {
-                ...slot,
-                package: {
-                  _id: "UNLIMITED_PACKAGE",
-                  name: "UNLIMITED PACKAGE",
-                  price:
-                    selectedActivities.packageAmount ||
-                    selectedActivities.totalPrice,
-                  activities: selectedActivities.activities,
-                  isUnlimited: true,
-                },
-              }
-            : slot
-        )
-      );
-
-      setUnlimitedPackageModalOpen(false);
-    } catch (error) {
-      console.error("Error submitting unlimited package:", error);
-      setError("Failed to update unlimited package. Please try again.");
-    }
-  };
-
   const handleCheckClick = () => {
     if (!validatePhoneNumber(phoneNumber)) {
       setHelperText("Invalid phone number");
       setIsValid(false);
+      return;
     } else {
       setHelperText("");
       setIsValid(true);
@@ -224,6 +270,8 @@ const WindowPurchase = () => {
       try {
         setIsLoading(true);
         setExistingFuningoMoney(0);
+        setFetchUserError(""); // Clear previous errors
+
         const token = localStorage.getItem("token");
         if (!token) {
           throw new Error("Login or SignUp First");
@@ -239,27 +287,42 @@ const WindowPurchase = () => {
             headers: headers,
           }
         );
-        setExistingFuningoMoney(response.data.funingo_money);
+
+        setExistingFuningoMoney(response.data.funingo_money || 0);
         setName(response.data?.name || "");
-        if (response.data.address) {
-          setAddress(response.data.address);
-        }
+
         if (response.data.premium) {
+          let premiumFound = false;
           for (let data of response.data.premium) {
             if (new Date(data.expires_on) > Date.now()) {
               setIsPremium(true);
+              premiumFound = true;
               break;
             }
           }
+          if (!premiumFound) {
+            setIsPremium(false);
+          }
+        } else {
+          setIsPremium(false);
         }
+
         if (response.data.dob) {
-          setDob(moment(response.data.dob).format("YYYY-MM-DD"));
+          const formattedDate = moment(response.data.dob).format("YYYY-MM-DD");
+          setDob(formattedDate);
         } else {
           setDob("");
         }
+
+        toast.success("Customer data loaded successfully!");
       } catch (error) {
         console.log(error.message, error);
-        setFetchUserError(error?.response?.data?.error);
+        const errorMessage =
+          error?.response?.data?.error ||
+          error.message ||
+          "Failed to fetch customer data";
+        setFetchUserError(errorMessage);
+        toast.error(errorMessage);
       } finally {
         setIsLoading(false);
       }
@@ -273,116 +336,71 @@ const WindowPurchase = () => {
       return;
     }
     setCount(newCount);
-    setSelectedSlots((prevSelectedSlots) => {
-      const updatedSelectedSlots = [...prevSelectedSlots];
-      if (newCount < updatedSelectedSlots.length) {
-        return updatedSelectedSlots.slice(0, newCount);
-      } else {
-        for (let i = updatedSelectedSlots.length; i < newCount; i++) {
-          updatedSelectedSlots.push({
-            package: "",
-            person_name: "",
-            age: "",
-            gender: "",
-          });
-        }
-        return updatedSelectedSlots;
-      }
-    });
   };
+
   const getDiscountUsingCoupon = async (event) => {
-    const resp = await getDiscount({
-      token,
-      code,
-      total_amount: totalPrice - premiumDiscount,
-    });
-    console.log("resp.discount", resp.discount);
-    setCouponDiscount({ discount: resp.discount, message: resp.msg, code });
+    try {
+      const resp = await getDiscount({
+        token,
+        code,
+        total_amount: totalPrice - premiumDiscount,
+      });
+      console.log("resp.discount", resp.discount);
+      setCouponDiscount({ discount: resp.discount, message: resp.msg, code });
+      toast.success("Coupon applied successfully!");
+    } catch (error) {
+      toast.error("Failed to apply coupon");
+      setCouponDiscount({});
+    }
   };
 
-  const handleChange = (index, newSelectedSlot) => {
-    setSelectedSlots((prev) =>
-      prev.map((selectedSlot, ind) => {
-        if (ind === index) return newSelectedSlot;
-        return selectedSlot;
-      })
-    );
-  };
+  // Handle payment mode change and set split payment visibility
+  const handlePaymentModeChange = (selectedPaymentMode) => {
+    setPaymentMode(selectedPaymentMode);
 
-  const handlePackageSelectChange = (event, index) => {
-    const selectedValue = event.target.value;
-    setSelectedSlots((prevSelectedSlots) => {
-      const updatedSelectedSlots = [...prevSelectedSlots];
-      updatedSelectedSlots[index].package = selectedValue;
-      return updatedSelectedSlots;
-    });
-  };
+    console.log(selectedPaymentMode?.value, "chechimmg");
+    setExtraField(selectedPaymentMode?.value === " Cash Online");
 
-  const handleFreebiesSelectChange = (event, index) => {
-    const selectedValue = event.target.value;
-    setSelectedSlots((prevSelectedSlots) => {
-      const updatedSelectedSlots = [...prevSelectedSlots];
-      updatedSelectedSlots[index].freebies = selectedValue;
-      return updatedSelectedSlots;
-    });
-  };
-
-  const handleDeleteSelect = (index) => {
-    setSelectedSlots((prevSelectedSlots) => {
-      const updatedSelectedSlots = [...prevSelectedSlots];
-      updatedSelectedSlots.splice(index, 1);
-      setCount(count - 1);
-      return updatedSelectedSlots;
-    });
-    let totalPrice = 0;
-    selectedSlots.forEach((selectedSlot) => {
-      const packagePrice = selectedSlot.package?.price || 0;
-      totalPrice += packagePrice;
-    });
-
-    if (premiumDiscount) setPremiumDiscount(totalPrice / 2);
-    setTotalPrice(totalPrice);
-  };
-
-  const getAvailablePackageOptions = () => {
-    const availableOptions = packageData;
-    return availableOptions;
-  };
-
-  const getAvailableFreebiesOptions = (index) => {
-    const selectedValues = selectedSlots.slice();
-    const availableOptions = dummyFreebiesData.filter(
-      (option) =>
-        !selectedValues.some(
-          (selected) =>
-            selected.freebies === option.id &&
-            selected.freebies !== "" &&
-            selected.freebies !== selectedValues[index].freebies
-        ) ||
-        option.id === selectedValues[index].freebies ||
-        option.id === ""
-    );
-    return availableOptions;
+    // Reset split amounts when changing payment mode
+    if (selectedPaymentMode?.value !== " Cash Online") {
+      setcashAmount(null);
+      setonlineAmount(null);
+    }
   };
 
   // split payment logic
   const handleCashAmountChange = (e) => {
-    const value = e.target.value || 0;
+    const value = parseFloat(e.target.value) || 0;
     setcashAmount(value);
-    if (totalPrice - value > 0) {
-      setonlineAmount(totalPrice - value);
+    const finalTotal = Math.max(
+      0,
+      totalPrice -
+        premiumDiscount -
+        (couponDiscount.discount || 0) -
+        customDiscount
+    );
+    if (finalTotal - value >= 0) {
+      setonlineAmount(finalTotal - value);
     } else {
-      setonlineAmount(onlineAmount);
+      setonlineAmount(0);
+      setcashAmount(finalTotal);
     }
   };
 
   const handleOnlineAmountChange = (e) => {
-    const value = e.target.value || 0;
+    const value = parseFloat(e.target.value) || 0;
     setonlineAmount(value);
-    if (totalPrice - value > 0) {
-      setcashAmount(totalPrice - value);
+    const finalTotal = Math.max(
+      0,
+      totalPrice -
+        premiumDiscount -
+        (couponDiscount.discount || 0) -
+        customDiscount
+    );
+    if (finalTotal - value > 0) {
+      setcashAmount(finalTotal - value);
     } else {
-      setcashAmount(cashAmount);
+      setcashAmount(0);
     }
   };
 
@@ -400,7 +418,6 @@ const WindowPurchase = () => {
   };
 
   // reset values
-
   const resetForm = () => {
     setSelectedSlots([
       {
@@ -408,10 +425,18 @@ const WindowPurchase = () => {
         person_name: "",
         age: "",
         gender: "",
+        packageType: "regular",
+        unlimitedPackage: "",
       },
     ]);
+    setSelectedRegularPackages([]);
+    setSelectedUnlimitedPackages([]);
+    setSelectAllUnlimited(false);
     setCount(1);
     setPersonCount(1);
+    setPeopleCount(1);
+    setRegularPeopleCount(1);
+    setUnlimitedPeopleCount(1);
     setTotalPrice(0);
     setPhoneNumber("");
     setName("");
@@ -428,59 +453,70 @@ const WindowPurchase = () => {
     setExistingFuningoMoney(0);
     setError("");
     setFetchUserError("");
-    setUnlimitedPackageData(null);
-    setAddress({
-      state: "Madhya Pradesh",
-      city: "Jabalpur",
-      locality: "",
-    });
   };
 
   const handlePurchase = async (callback) => {
-    const details = selectedSlots.map((data) => ({
-      ...data,
-      package: data.package.isUnlimited ? null : data.package._id,
-      packageType: data.package.isUnlimited ? "unlimited" : "regular",
-      unlimitedPackageData: data.package.isUnlimited
-        ? {
-            activities: data.package.activities,
-            price: data.package.price,
-            name: data.package.name,
-          }
-        : null,
-    }));
+    // Create details array from selected packages
+    const regularDetails = selectedRegularPackages.flatMap((item) =>
+      Array(regularPeopleCount)
+        .fill()
+        .map(() => ({
+          package: item.package._id,
+          packageType: "regular",
+          person_name: "",
+          age: "",
+          gender: "",
+          unlimitedPackageData: null,
+        }))
+    );
+
+    // Updated unlimited details for multiple packages
+    let unlimitedDetails = [];
+    selectedUnlimitedPackages.forEach((item) => {
+      const packageDetails = Array(item.count)
+        .fill()
+        .map(() => ({
+          package: null,
+          packageType: "unlimited",
+          person_name: "",
+          age: "",
+          gender: "",
+          unlimitedPackageData: {
+            activities: item.package.activities,
+            price: item.package.totalCost,
+            name: item.package.packageName,
+          },
+        }));
+      unlimitedDetails = [...unlimitedDetails, ...packageDetails];
+    });
+
+    const details = [...regularDetails, ...unlimitedDetails];
 
     const calculateCoins = () => {
       let totalCoins = 0;
-
-      selectedSlots.forEach((slot) => {
-        if (slot.package.isUnlimited) {
-          totalCoins += 0;
-        } else {
-    
-          totalCoins += slot.package?.coins || 0;
-        }
+      selectedRegularPackages.forEach((item) => {
+        totalCoins += (item.package?.coins || 0) * regularPeopleCount;
       });
-
       return totalCoins;
     };
 
     const coinsToSend = calculateCoins();
-
-    const hasUnlimitedPackage = selectedSlots.some(
-      (slot) => slot.package.isUnlimited
-    );
+    const hasUnlimitedPackage = selectedUnlimitedPackages.length > 0;
 
     try {
-      const response = await windowPurchase({
-        count: personCount,
-        total_amount:
-          totalPrice -
+      const finalTotal = Math.max(
+        0,
+        totalPrice -
           premiumDiscount -
           (couponDiscount.discount || 0) -
-          customDiscount,
-        cash_amount: cashAmount,
-        online_amount: onlineAmount,
+          customDiscount
+      );
+
+      const response = await windowPurchase({
+        count: personCount,
+        total_amount: finalTotal,
+        cash_amount: showExtraField ? cashAmount : finalTotal,
+        online_amount: showExtraField ? onlineAmount : 0,
         details,
         token,
         phone_no: phoneNumber ? "+91-" + phoneNumber : undefined,
@@ -492,17 +528,6 @@ const WindowPurchase = () => {
       });
 
       if (response.success) {
-        const newInvoiceData = {
-          invoiceNumber: response.short_id,
-          invoiceDate: new Date().toLocaleDateString(),
-          cashAmount: cashAmount,
-          onlineAmount: onlineAmount,
-          paymentMethod: paymentMode.label,
-          totalAmount: totalPrice,
-        };
-
-        setInvoiceData(newInvoiceData);
-        console.log(response.short_id, "ticketId");
         setShortId(response.short_id);
 
         // get current user
@@ -515,8 +540,6 @@ const WindowPurchase = () => {
 
         const redeemByEmp = employeeUser.data.user.emp_id;
         const redeemByEmpPhone = employeeUser.data.user.phone_no;
-        console.log(redeemByEmp, redeemByEmpPhone);
-        console.log(phoneNumber);
 
         const resCusHistoryAdd = await axios.put(
           `${apiUrl}/user/addhistory`,
@@ -558,22 +581,17 @@ const WindowPurchase = () => {
         callback?.(response.short_id);
       }
     } catch (error) {
-      toast.error("Please fill all the fields", error);
-      setError(error?.response?.data?.error);
-
-      toast.error(
-        `❌ ${
-          error?.response?.data?.error || "Booking failed. Please try again."
-        }`,
-        {
-          position: "top-right",
-          autoClose: 5000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-        }
-      );
+      const errorMessage =
+        error?.response?.data?.error || "Booking failed. Please try again.";
+      setError(errorMessage);
+      toast.error(`❌ ${errorMessage}`, {
+        position: "top-right",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
     }
   };
 
@@ -595,719 +613,1607 @@ const WindowPurchase = () => {
           `${apiUrl}/activity/activityfetch`
         );
         setActivities(activitiesRes.data);
+
         const response = await axios.get(`${apiUrl}/package`);
         if (!response.data.success) {
           throw new Error("Couldn't Fetch Packages");
         }
 
-        // logic to handle unlimted package
+        // Fetch unlimited packages from API
+        const headers = {
+          token: token,
+          "Content-Type": "application/json",
+        };
+
+        try {
+          const unlimitedResponse = await axios.get(
+            `${apiUrl}/unlimitedPackage/packages`,
+            { headers }
+          );
+          console.log("Unlimited packages response:", unlimitedResponse.data);
+          // Handle the nested data structure from API response
+          if (unlimitedResponse.data.success && unlimitedResponse.data.data) {
+            setUnlimitedPackageData(unlimitedResponse.data.data);
+          } else {
+            setUnlimitedPackageData([]);
+          }
+        } catch (unlimitedError) {
+          console.error("Error fetching unlimited packages:", unlimitedError);
+          setUnlimitedPackageData([]);
+        }
+
         let rawData = response.data.packages;
-
         handlePackageDataResponse(rawData);
-
-        setIsLoading(false);
       } catch (error) {
         console.error(error.message, error);
+        toast.error("Failed to load packages");
       } finally {
         setIsLoading(false);
       }
     }
     fetchData();
-  }, []);
+  }, [token]);
 
   useEffect(() => {
-    let totalPrice = 0,
-      premiumDiscount = 0;
-    selectedSlots.forEach((selectedSlot) => {
-      const packagePrice = parseInt(selectedSlot.package?.price || 0);
-      totalPrice += packagePrice;
-    });
+    let totalPrice = 0;
+    let totalCount = 0;
+
+    // Calculate regular packages total
+    if (selectedRegularPackages.length > 0) {
+      const regularTotal = selectedRegularPackages.reduce((sum, item) => {
+        return sum + (item.package?.price || 0);
+      }, 0);
+      totalPrice += regularTotal;
+      totalCount += regularPeopleCount;
+    }
+
+    // Calculate unlimited packages total (updated for multiple packages)
+    if (selectedUnlimitedPackages.length > 0) {
+      const unlimitedTotal = selectedUnlimitedPackages.reduce((sum, item) => {
+        return sum + item.package.totalCost * item.count;
+      }, 0);
+      totalPrice += unlimitedTotal;
+
+      const unlimitedCount = selectedUnlimitedPackages.reduce((sum, item) => {
+        return sum + item.count;
+      }, 0);
+      totalCount += unlimitedCount;
+    }
+
+    let premiumDiscount = 0;
     if (isPremium) {
       premiumDiscount = totalPrice / 2;
       setPremiumDiscount(premiumDiscount);
+    } else {
+      setPremiumDiscount(0);
     }
+
     setTotalPrice(totalPrice);
-    console.log("Total Price Calculated:", totalPrice);
-  }, [selectedSlots, isPremium]);
-  console.log("checking", invoiceData);
+    setPersonCount(totalCount);
+  }, [
+    selectedRegularPackages,
+    selectedUnlimitedPackages, // Changed from selectedUnlimitedPackage
+    regularPeopleCount,
+    isPremium,
+  ]);
+
+  // Custom styles for React Select
+  const selectStyles = {
+    control: (provided) => ({
+      ...provided,
+      minHeight: "45px",
+      borderRadius: "8px",
+      borderColor: "#e0e0e0",
+      boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+      "&:hover": {
+        borderColor: "#1976d2",
+      },
+    }),
+    menu: (provided) => ({
+      ...provided,
+      borderRadius: "8px",
+      boxShadow: "0 4px 16px rgba(0,0,0,0.15)",
+      zIndex: 9999,
+    }),
+    menuPortal: (provided) => ({
+      ...provided,
+      zIndex: 9999,
+    }),
+    option: (provided, state) => ({
+      ...provided,
+      backgroundColor: state.isSelected
+        ? "#1976d2"
+        : state.isFocused
+        ? "#f5f5f5"
+        : "white",
+      color: state.isSelected ? "white" : "#333",
+      padding: "10px 16px",
+    }),
+  };
+
+  // Check if form is valid for purchase
+  const isFormValid = () => {
+    const hasValidPackages =
+      selectedRegularPackages.length > 0 ||
+      selectedUnlimitedPackages.length > 0; // Updated
+    const hasBasicInfo = phoneNumber && paymentMode && name;
+    const hasValidTotal = totalPrice > 0;
+
+    return hasValidPackages && hasBasicInfo && hasValidTotal;
+  };
 
   return (
-    <Grid
+    <Box
       sx={{
-        width: "100%",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        padding: "20px",
+        minHeight: "100vh",
+        backgroundColor: "#f8fafc",
+        padding: { xs: "16px", md: "24px" },
       }}
     >
-      <ComplimentaryDialog
-        phoneNumber={phoneNumber}
-        open={complementaryCoinsModalOpen}
-        onClose={() => setComplementaryCoinsModalOpen(false)}
-      />
-      <ConfirmationModal
-        open={confirmationModalOpen}
-        onClose={() => setConfirmationModalOpen(false)}
-        handlePurchase={handlePurchase}
-      />
+      {/* Loading Overlay */}
       {isLoading && (
-        <Grid
+        <Box
           sx={{
             position: "fixed",
             top: 0,
             left: 0,
             width: "100%",
             height: "100%",
-            background: "rgba(0, 0, 0, 0.5)",
+            background: "rgba(0, 0, 0, 0.7)",
             display: "flex",
             justifyContent: "center",
             alignItems: "center",
             zIndex: 9999,
+            backdropFilter: "blur(4px)",
           }}
         >
-          <CircularProgress sx={{ color: "white" }} />
-        </Grid>
+          <Box sx={{ textAlign: "center" }}>
+            <CircularProgress sx={{ color: "white", mb: 2 }} size={60} />
+            <Typography sx={{ color: "white", fontSize: "18px" }}>
+              Loading...
+            </Typography>
+          </Box>
+        </Box>
       )}
-      <Grid
-        sx={{
-          width: { xs: "100%", lg: "60%" },
-          display: "flex",
-          flexDirection: "column",
-          gap: "15px",
-        }}
-      >
-        <Grid
-          display={"flex"}
-          width={"100%"}
+
+      <Box sx={{ maxWidth: "1200px", margin: "0 auto" }}>
+        {/* Header */}
+        <Paper
+          elevation={0}
           sx={{
-            gap: "15px",
-            marginBottom: "25px",
-            flexDirection: { xs: "column", md: "row" },
-            alignItems: "center",
-          }}
-        >
-          <FormControl sx={{ width: { xs: "100%", lg: "50%" } }}>
-            <p style={{ fontSize: "14px", fontWeight: "500" }}>Phone Number</p>
-            <TextField
-              type="number"
-              value={phoneNumber}
-              placeholder="Enter valid Phone Number"
-              onChange={handlePhoneNumberChange}
-              InputProps={{
-                sx: {
-                  "& input": {
-                    border: "0px !important",
-                    "&::-webkit-inner-spin-button, &::-webkit-outer-spin-button":
-                      {
-                        WebkitAppearance: "none",
-                        margin: 0,
-                      },
-                  },
-                },
-              }}
-            />
-            <Box>
-              <Typography>
-                Available funingo money: {existingFuningoMoney}
-              </Typography>
-            </Box>
-            {fetchUserError && (
-              <Typography color={"red"}>{fetchUserError}</Typography>
-            )}
-
-            <FormHelperText error={!isValid}>
-              {!isValid && helperText}
-            </FormHelperText>
-          </FormControl>
-
-          <Button
-            sx={{
-              background: "#257ac4",
-              color: "white",
-              maxHeight: "40px",
-              marginBottom: "4px",
-              fontSize: "12px",
-              "&:hover": {
-                backgroundColor: "#257ac4",
-                color: "white",
-              },
-              border: "none",
-              outline: "none",
-            }}
-            onClick={handleCheckClick}
-          >
-            Check
-          </Button>
-          <Button
-            sx={{
-              background: "#257ac4",
-              color: "white",
-              maxHeight: "40px",
-              marginBottom: "4px",
-              fontSize: "12px",
-              "&:hover": {
-                backgroundColor: "#257ac4",
-                color: "white",
-              },
-              border: "none",
-              outline: "none",
-            }}
-            onClick={() => {
-              if (!phoneNumber) {
-                setFetchUserError("Please enter a valid phone number");
-                return;
-              }
-              setComplementaryCoinsModalOpen(true);
-            }}
-          >
-            Add Complementary Coins
-          </Button>
-        </Grid>
-
-        <Grid display={"flex"} gap={"20px"}>
-          <FormControl sx={{ width: { xs: "100%", lg: "45%" } }}>
-            <p style={{ fontSize: "14px", fontWeight: "500" }}>Name</p>
-            <TextField
-              type="text"
-              value={name}
-              onChange={handleNameChange}
-              placeholder="Enter customer name"
-              InputProps={{
-                sx: {
-                  height: "40px",
-                  "& input": {
-                    border: "0px !important",
-                    "&::-webkit-inner-spin-button, &::-webkit-outer-spin-button":
-                      {
-                        WebkitAppearance: "none",
-                        margin: 0,
-                      },
-                  },
-                },
-              }}
-            />
-          </FormControl>
-
-          <FormControl sx={{ width: { xs: "100%", lg: "50%" } }}>
-            <p style={{ fontSize: "14px", fontWeight: "500" }}>Date of Birth</p>
-            <TextField
-              type="date"
-              value={dob}
-              onChange={handleDobChange}
-              InputProps={{
-                sx: {
-                  height: "40px",
-                  "& input": {
-                    border: "0px !important",
-                    "&::-webkit-inner-spin-button, &::-webkit-outer-spin-button":
-                      {
-                        WebkitAppearance: "none",
-                        margin: 0,
-                      },
-                  },
-                },
-              }}
-            />
-          </FormControl>
-        </Grid>
-
-        {count > 0 &&
-          selectedSlots.map((selectedSlot, index) => (
-            <Grid
-              key={index}
-              sx={{
-                display: "flex",
-                gap: "20px",
-                justifyContent: "center",
-                alignItems: "center",
-                flexDirection: "column",
-                marginBottom: "15px",
-              }}
-            >
-              <hr width={"100%"} />
-              <Grid
-                sx={{
-                  width: "100%",
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                }}
-              >
-                <Typography
-                  sx={{
-                    fontFamily: "Roboto Mono, monospace",
-                    fontSize: { xs: "15px", lg: "20px" },
-                    letterSpacing: "2px",
-                  }}
-                >
-                  {`Price -> Rs ${
-                    selectedSlot?.package?.price
-                      ? parseInt(selectedSlot.package.price)
-                      : 0
-                  }`}
-                </Typography>
-              </Grid>
-
-              {!selectedSlot?.package?.isUnlimited && (
-                <Button
-                  variant="contained"
-                  fullWidth
-                  onClick={() => {
-                    setCurrentSlotIndex(index);
-                    setUnlimitedPackageModalOpen(true);
-                    setIsUnlimtedPackageClicked(false);
-                  }}
-                  sx={{
-                    background:
-                      "linear-gradient(45deg, #667eea 30%, #764ba2 90%)",
-                    color: "white",
-                    py: 1.5,
-                    fontSize: "16px",
-                    fontWeight: "600",
-                    borderRadius: "8px",
-                    "&:hover": {
-                      background:
-                        "linear-gradient(45deg, #5a6fd8 30%, #6a4190 90%)",
-                      transform: "translateY(-1px)",
-                      boxShadow: "0 4px 8px rgba(0,0,0,0.2)",
-                    },
-                  }}
-                >
-                  📦 Book Unlimited Package
-                </Button>
-              )}
-              <Grid
-                sx={{
-                  width: "100%",
-                  display: "flex",
-                  flexDirection: { xs: "column", md: "row" },
-                  gap: { xs: "15px", md: "10px" },
-                }}
-              >
-                <Grid
-                  sx={{
-                    width: { xs: "100%", lg: "50%" },
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "10px",
-                  }}
-                >
-                  {/* for unlimted package booking */}
-                  {unlimitedPackageModalOpen ? (
-                    <UnlimitedPackageModal
-                      open={unlimitedPackageModalOpen}
-                      onClose={() => setUnlimitedPackageModalOpen(false)}
-                      onSubmit={handleUnlimitedPackageSubmit}
-                      packageData={activitiesData}
-                    />
-                  ) : selectedSlot?.package?.isUnlimited ? (
-                    // Show selected activities for unlimited package
-                    <Grid
-                      sx={{
-                        width: "100%",
-                        p: 2,
-                        border: "1px solid #ddd",
-                        borderRadius: "8px",
-                        backgroundColor: "#f9f9f9",
-                      }}
-                    >
-                      <Typography
-                        variant="h6"
-                        sx={{ mb: 2, fontWeight: "bold", color: "#667eea" }}
-                      >
-                        Selected Activities - {selectedSlot.package.name}
-                      </Typography>
-                      <Grid sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
-                        {selectedSlot.package.activities?.map(
-                          (activity, actIndex) => (
-                            <Box
-                              key={actIndex}
-                              sx={{
-                                backgroundColor: "#667eea",
-                                color: "white",
-                                px: 2,
-                                py: 1,
-                                borderRadius: "16px",
-                                fontSize: "14px",
-                                fontWeight: "500",
-                              }}
-                            >
-                              {activity.name} (₹{activity.price})
-                            </Box>
-                          )
-                        )}
-                      </Grid>
-                      <Typography sx={{ mt: 2, fontWeight: "bold" }}>
-                        Total Package Price: ₹{selectedSlot.package.price}
-                      </Typography>
-                      <Button
-                        variant="outlined"
-                        size="small"
-                        sx={{ mt: 1 }}
-                        onClick={() => {
-                          setCurrentSlotIndex(index);
-                          setUnlimitedPackageModalOpen(true);
-                        }}
-                      >
-                        Edit Activities
-                      </Button>
-                    </Grid>
-                  ) : (
-                    <FormControl fullWidth>
-                      <InputLabel>Select Package</InputLabel>
-                      <Select
-                        label="Select Package"
-                        value={
-                          selectedSlot?.package === ""
-                            ? ""
-                            : selectedSlot.package
-                        }
-                        onChange={(e) => handlePackageSelectChange(e, index)}
-                      >
-                        <MenuItem value="">
-                          <em>
-                            {getAvailablePackageOptions &&
-                            getAvailablePackageOptions.length === 0
-                              ? "Deselect packages"
-                              : "None"}
-                          </em>
-                        </MenuItem>
-                        {getAvailablePackageOptions(index).map((option, i) => (
-                          <MenuItem key={i} value={option}>
-                            <ListedOptionLayout data={option} />
-                          </MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
-                  )}
-                </Grid>
-                <Grid
-                  sx={{
-                    width: { xs: "100%", lg: "50%" },
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "10px",
-                  }}
-                ></Grid>
-              </Grid>
-
-              <Grid width={"100%"}>
-                <Typography mb="5px">Optional Fields</Typography>
-                <Grid
-                  display={"flex"}
-                  justifyContent={"flex-start"}
-                  mb={"15px"}
-                  flexDirection={"row"}
-                  width={"100%"}
-                  gap="20px"
-                >
-                  <Grid>
-                    <TextField
-                      name="age"
-                      type="text"
-                      placeholder="Age"
-                      value={selectedSlot.age}
-                      onChange={(e) => {
-                        handleChange(index, {
-                          ...selectedSlot,
-                          age: e.target.value,
-                        });
-                      }}
-                      required={true}
-                      fullWidth
-                    />
-                  </Grid>
-
-                  <Grid>
-                    <ReactSelect
-                      id="gender"
-                      name="gender"
-                      value={genderOptions.find(
-                        (option) => option?.value === selectedSlot.gender
-                      )}
-                      onChange={(e) => {
-                        handleChange(index, {
-                          ...selectedSlot,
-                          gender: e?.value,
-                        });
-                      }}
-                      placeholder="Gender"
-                      styles={{
-                        control: (provided) => ({
-                          ...provided,
-                          background: "white",
-                          height: "40px",
-                        }),
-                        input: (provided) => ({
-                          ...provided,
-                          color: "black",
-                          "& input": {
-                            height: "30px",
-                          },
-                        }),
-                        ValueContainer: (provided) => ({
-                          ...provided,
-                        }),
-                        option: (provided, state) => ({
-                          ...provided,
-                          color: state.isSelected ? "white" : "black",
-                        }),
-                      }}
-                      required={true}
-                      isSearchable={false}
-                      options={genderOptions}
-                    />
-                  </Grid>
-                </Grid>
-              </Grid>
-            </Grid>
-          ))}
-        <Grid
-          sx={{
-            display: "flex",
-            gap: "20px",
-          }}
-        >
-          <Grid>
-            <Typography>Add Custom discount</Typography>
-            <TextField
-              type="number"
-              value={customDiscount}
-              onChange={handleCustomDiscountChange}
-              min={0}
-            />
-          </Grid>
-          <Grid>
-            <Typography>Add Person count</Typography>
-            <TextField
-              type="number"
-              value={personCount}
-              onChange={(e) => setPersonCount(parseInt(e.target.value))}
-              min={0}
-            />
-          </Grid>
-        </Grid>
-
-        <Grid
-          sx={{
-            width: "100%",
-            height: "150px",
-            backgroundColor: "beige",
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "space-around",
-            alignItems: "center",
-            color: "black",
-            padding: "15px 30px",
-            marginBottom: "25px",
-            borderRadius: "5px",
+            p: 3,
+            mb: 4,
+            background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+            color: "white",
+            borderRadius: "16px",
           }}
         >
           <Typography
+            variant="h4"
             sx={{
-              fontSize: { xs: "22px", lg: "15px" },
-              fontWeight: "600",
-              letterSpacing: "3px",
+              fontWeight: "bold",
+              mb: 1,
+              display: "flex",
+              alignItems: "center",
+              gap: 2,
             }}
           >
-            PAYMENT SUMMARY
+            <Tour fontSize="large" />
+            Window Purchase
           </Typography>
-          <Grid
-            width={"100%"}
-            display={"flex"}
-            justifyContent={"space-between"}
-          >
-            <Typography>Subtotal </Typography>
-            <Typography>Rs {totalPrice - gstPrice} </Typography>
-          </Grid>
+          <Typography variant="subtitle1" sx={{ opacity: 0.9 }}>
+            Book tickets and manage customer purchases
+          </Typography>
+        </Paper>
 
-          <Grid
-            width={"100%"}
-            display={"flex"}
-            justifyContent={"space-between"}
-          >
-            <Typography>Discount </Typography>
-            <Typography>
-              Rs{" "}
-              {(couponDiscount.discount || 0) +
-                (premiumDiscount || 0) +
-                customDiscount}
-            </Typography>
-          </Grid>
-
-          <hr width={"100%"} />
-
-          <Grid
-            width={"100%"}
-            display={"flex"}
-            justifyContent={"space-between"}
-            paddingTop={"5px"}
-          >
-            <Typography>Total </Typography>
-            <Typography>
-              Rs{" "}
-              {Math.max(
-                totalPrice -
-                  ((couponDiscount.discount || 0) +
-                    (premiumDiscount || 0) +
-                    customDiscount),
-                0
-              )}
-            </Typography>
-          </Grid>
-        </Grid>
-        <Grid width={"100%"}>
-          <TextField
-            fullWidth
+        {/* Customer Information Card */}
+        <Card
+          elevation={3}
+          sx={{ mb: 4, borderRadius: "16px", overflow: "hidden" }}
+        >
+          <Box
             sx={{
-              background: "white",
-              borderRadius: "5px",
-              mt: "0px",
-              zIndex: 0,
-              "&:hover": {
-                "& fieldset": {
-                  borderColor: "rgba(0, 0, 0, 0.23)",
-                },
-              },
+              background: "linear-gradient(90deg, #4facfe 0%, #00f2fe 100%)",
+              p: 2,
             }}
-            placeholder="Have a promo code?"
-            value={code}
-            onChange={(e) => setCode(e.target.value)}
-            InputProps={{
-              endAdornment: (
-                <InputAdornment position="end">
-                  <Button onClick={() => getDiscountUsingCoupon()}>
-                    Apply
-                  </Button>
-                </InputAdornment>
-              ),
-            }}
-            inputProps={{
-              sx: {
-                border: "none !important",
-                zIndex: "0 !important",
-              },
-            }}
-          />
-          {!!couponDiscount.message && (
+          >
             <Typography
-              sx={{
-                color: "red",
-                fontSize: "12px",
-                mt: "5px",
-              }}
+              variant="h6"
+              sx={{ color: "white", fontWeight: "bold" }}
             >
-              {couponDiscount.message}
+              Customer Information
             </Typography>
-          )}
-          {!!couponDiscount.discount && (
-            <Typography
-              sx={{
-                color: "green",
-                fontSize: "12px",
-                mt: "5px",
-              }}
-            >
-              Promo code applied!!
-            </Typography>
-          )}
-        </Grid>
-        <Grid>
-          <Grid mb="20px">
-            <ReactSelect
-              options={paymentModes}
-              onChange={(e) => {
-                setPaymentMode(e);
-                // for enable Field of cash And Online
-                if (e.value && e.value === " Cash Online") {
-                  setExtraField(true);
-                } else {
-                  setExtraField(false);
-                }
-              }}
-              placeholder="Payment mode"
-              value={paymentMode}
-              styles={{
-                container: (styles) => ({
-                  ...styles,
-                  flexBasis: "300px",
-                }),
-              }}
-              isClearable={false}
-            />
-          </Grid>
-
-          {/* for cash and online amount */}
-          {showExtraField && (
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                marginBottom: "10px",
-              }}
-            >
-              <Grid>
-                <Typography>Enter Cash Amount</Typography>
+          </Box>
+          <CardContent sx={{ p: 3 }}>
+            {/* Phone Number Section */}
+            <Grid container spacing={3} sx={{ mb: 3 }}>
+              <Grid item xs={12} md={6}>
+                <Typography
+                  sx={{
+                    fontSize: "16px",
+                    fontWeight: "600",
+                    mb: 1,
+                    color: "#333",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 1,
+                  }}
+                >
+                  <Phone fontSize="small" color="primary" />
+                  Phone Number
+                </Typography>
                 <TextField
+                  fullWidth
                   type="number"
-                  value={cashAmount}
-                  onChange={handleCashAmountChange}
-                  min={0}
+                  value={phoneNumber}
+                  placeholder="Enter valid Phone Number"
+                  onChange={handlePhoneNumberChange}
+                  error={!isValid}
+                  helperText={!isValid && helperText}
+                  sx={{
+                    "& .MuiOutlinedInput-root": {
+                      borderRadius: "12px",
+                      boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+                      "&:hover": {
+                        boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+                      },
+                    },
+                  }}
+                  InputProps={{
+                    sx: {
+                      "& input": {
+                        "&::-webkit-inner-spin-button, &::-webkit-outer-spin-button":
+                          {
+                            WebkitAppearance: "none",
+                            margin: 0,
+                          },
+                      },
+                    },
+                  }}
                 />
+                <Box
+                  sx={{ mt: 2, p: 2, bgcolor: "#e8f5e8", borderRadius: "8px" }}
+                >
+                  <Typography
+                    variant="body2"
+                    sx={{ fontWeight: "600", color: "#2e7d32" }}
+                  >
+                    Available Funingo Money: ₹{existingFuningoMoney}
+                  </Typography>
+                  {isPremium && (
+                    <Chip
+                      label="Premium Member"
+                      color="warning"
+                      size="small"
+                      sx={{ mt: 1 }}
+                    />
+                  )}
+                </Box>
+                {fetchUserError && (
+                  <Typography color="error" sx={{ mt: 1, fontSize: "14px" }}>
+                    {fetchUserError}
+                  </Typography>
+                )}
               </Grid>
 
-              <Grid>
-                <Typography>Enter Online Amount</Typography>
-                <TextField
-                  type="number"
-                  value={onlineAmount}
-                  onChange={handleOnlineAmountChange}
-                  min={0}
-                />
-              </Grid>
-            </div>
-          )}
-
-          {shortId ? (
-            <Box
-              sx={{
-                display: "flex",
-                gap: "10px",
-                alignItems: "center",
-                mb: "10px",
-              }}
-            >
-              <Typography>
-                Your ticket is booked. <b>TicketId: {shortId}</b>
-              </Typography>
-              <Button
-                onClick={() => {
-                  navigate(`/we/get-qr-tickets?tid=${shortId}`);
-                  scrollToTop();
+              <Grid
+                item
+                xs={12}
+                md={6}
+                sx={{
+                  display: "flex",
+                  alignItems: "flex-end",
+                  justifyContent: "center",
                 }}
               >
-                Generate QR Tickets
-              </Button>
-            </Box>
-          ) : (
-            <>
-              <Button
-                onClick={() => handlePurchase()}
-                variant="contained"
-                fullWidth
-                disabled={!paymentMode || count === 0 || phoneNumber === ""}
-              >
-                Buy Now
-              </Button>
+                <Button
+                  variant="contained"
+                  onClick={handleCheckClick}
+                  disabled={isLoading || !phoneNumber}
+                  sx={{
+                    height: "56px",
+                    px: 4,
+                    borderRadius: "12px",
+                    background: "linear-gradient(45deg, #42a5f5, #478ed1)",
+                    boxShadow: "0 4px 12px rgba(66, 165, 245, 0.4)",
+                    "&:hover": {
+                      background: "linear-gradient(45deg, #1e88e5, #1976d2)",
+                      boxShadow: "0 6px 16px rgba(66, 165, 245, 0.6)",
+                    },
+                    "&:disabled": {
+                      background: "#e0e0e0",
+                      boxShadow: "none",
+                    },
+                  }}
+                >
+                  {isLoading ? (
+                    <CircularProgress size={24} sx={{ color: "white" }} />
+                  ) : (
+                    "Check Customer"
+                  )}
+                </Button>
+              </Grid>
+            </Grid>
 
-              <FormHelperText error>{error}</FormHelperText>
-            </>
+            {/* Name and DOB Section */}
+            <Grid container spacing={3}>
+              <Grid item xs={12} md={6}>
+                <Typography
+                  sx={{
+                    fontSize: "16px",
+                    fontWeight: "600",
+                    mb: 1,
+                    color: "#333",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 1,
+                  }}
+                >
+                  <Person fontSize="small" color="primary" />
+                  Customer Name
+                </Typography>
+                <TextField
+                  fullWidth
+                  value={name}
+                  onChange={handleNameChange}
+                  placeholder="Enter customer name"
+                  sx={{
+                    "& .MuiOutlinedInput-root": {
+                      borderRadius: "12px",
+                      boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+                    },
+                  }}
+                />
+              </Grid>
+
+              <Grid item xs={12} md={6}>
+                <Typography
+                  sx={{
+                    fontSize: "16px",
+                    fontWeight: "600",
+                    mb: 1,
+                    color: "#333",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 1,
+                  }}
+                >
+                  <CalendarToday fontSize="small" color="primary" />
+                  Date of Birth
+                </Typography>
+                <TextField
+                  fullWidth
+                  type="date"
+                  value={dob}
+                  onChange={handleDobChange}
+                  sx={{
+                    "& .MuiOutlinedInput-root": {
+                      borderRadius: "12px",
+                      boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+                    },
+                  }}
+                />
+              </Grid>
+            </Grid>
+          </CardContent>
+        </Card>
+
+        {/* Package Selection Card */}
+        <Card
+          elevation={3}
+          sx={{ mb: 4, borderRadius: "16px", overflow: "hidden" }}
+        >
+          <Box
+            sx={{
+              background: "linear-gradient(90deg, #ff6b6b 0%, #ffa726 100%)",
+              p: 2,
+            }}
+          >
+            <Typography
+              variant="h6"
+              sx={{ color: "white", fontWeight: "bold" }}
+            >
+              Package Selection
+            </Typography>
+          </Box>
+          <CardContent sx={{ p: 3 }}>
+            {/* Regular Packages Section */}
+            <Box sx={{ mb: 4 }}>
+              <Typography
+                variant="h6"
+                sx={{
+                  mb: 2,
+                  color: "#333",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 1,
+                }}
+              >
+                <LocalOffer color="primary" />
+                Regular Packages
+              </Typography>
+
+              <Grid container spacing={3} sx={{ mb: 3 }}>
+                <Grid item xs={12} md={8}>
+                  <ReactSelect
+                    options={getRegularPackageOptions()}
+                    onChange={handleAddRegularPackage}
+                    placeholder="Select regular packages..."
+                    styles={selectStyles}
+                    menuPortalTarget={document.body}
+                    isDisabled={isLoading}
+                    value={null}
+                  />
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <TextField
+                    fullWidth
+                    type="number"
+                    label="Number of Tickets" // Changed from "People Count"
+                    value={regularPeopleCount}
+                    onChange={handleRegularPeopleCountChange}
+                    inputProps={{ min: 1, max: 50 }}
+                    helperText="How many tickets do you want?" // Added helper text
+                    sx={{
+                      "& .MuiOutlinedInput-root": {
+                        borderRadius: "12px",
+                      },
+                    }}
+                  />
+                </Grid>
+              </Grid>
+
+              {/* Selected Regular Packages Display */}
+              {selectedRegularPackages.length > 0 && (
+                <Box sx={{ mb: 3 }}>
+                  <Typography
+                    variant="subtitle1"
+                    sx={{
+                      mb: 3,
+                      fontWeight: "700",
+                      color: "#2e7d32",
+                      fontSize: "1.1rem",
+                    }}
+                  >
+                    🎫 Selected Regular Packages
+                  </Typography>
+                  {selectedRegularPackages.map((item, index) => (
+                    <Paper
+                      key={index}
+                      elevation={6}
+                      sx={{
+                        p: 3,
+                        mb: 3,
+                        borderRadius: "16px",
+                        border: "2px solid #c8e6c9",
+                        background:
+                          "linear-gradient(135deg, #ffffff 0%, #f8fff8 100%)",
+                        boxShadow:
+                          "0 8px 32px rgba(46, 125, 50, 0.12), 0 2px 8px rgba(0, 0, 0, 0.08)",
+                        transition: "all 0.3s ease",
+                        "&:hover": {
+                          boxShadow:
+                            "0 12px 40px rgba(46, 125, 50, 0.18), 0 4px 12px rgba(0, 0, 0, 0.12)",
+                          transform: "translateY(-2px)",
+                          border: "2px solid #a5d6a7",
+                        },
+                      }}
+                    >
+                      <Box
+                        sx={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "flex-start",
+                          gap: 2,
+                        }}
+                      >
+                        <Box sx={{ flex: 1 }}>
+                          <Typography
+                            variant="h6"
+                            sx={{
+                              fontWeight: "700",
+                              color: "#1b5e20",
+                              mb: 1,
+                              fontSize: "1.2rem",
+                            }}
+                          >
+                            {item.package.name}
+                          </Typography>
+
+                          <Box
+                            sx={{
+                              display: "flex",
+                              flexWrap: "wrap",
+                              gap: 1.5,
+                              mb: 2,
+                              alignItems: "center",
+                            }}
+                          >
+                            <Chip
+                              label={`₹${item.package.price} per package`}
+                              sx={{
+                                bgcolor: "#e8f5e8",
+                                color: "#2e7d32",
+                                fontWeight: "600",
+                                border: "1px solid #c8e6c9",
+                              }}
+                            />
+                            <Chip
+                              label={`${item.package.coins} coins per person`}
+                              sx={{
+                                bgcolor: "#fff3e0",
+                                color: "#f57c00",
+                                fontWeight: "600",
+                                border: "1px solid #ffcc02",
+                              }}
+                            />
+                          </Box>
+
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              color: "#388e3c",
+                              mb: 2,
+                              fontWeight: "500",
+                              bgcolor: "#f1f8e9",
+                              p: 1,
+                              borderRadius: "8px",
+                              border: "1px solid #c8e6c9",
+                            }}
+                          >
+                            🎟️ Number of tickets: {regularPeopleCount}
+                          </Typography>
+
+                          <Box
+                            sx={{
+                              bgcolor: "#e8f5e8",
+                              p: 2,
+                              borderRadius: "12px",
+                              border: "2px solid #c8e6c9",
+                              boxShadow: "0 2px 8px rgba(46, 125, 50, 0.1)",
+                            }}
+                          >
+                            <Typography
+                              variant="body1"
+                              sx={{
+                                color: "#2e7d32",
+                                fontWeight: "700",
+                                fontSize: "1.1rem",
+                                textAlign: "center",
+                              }}
+                            >
+                              💰 Package Total: ₹{item.package.price}
+                            </Typography>
+                          </Box>
+                        </Box>
+
+                        <Button
+                          variant="outlined"
+                          color="error"
+                          onClick={() =>
+                            handleRemoveRegularPackage(item.package._id)
+                          }
+                          sx={{
+                            borderRadius: "12px",
+                            p: 1.5,
+                            minWidth: "auto",
+                            border: "2px solid #f44336",
+                            boxShadow: "0 4px 12px rgba(244, 67, 54, 0.3)",
+                            "&:hover": {
+                              bgcolor: "#ffebee",
+                              border: "2px solid #d32f2f",
+                              boxShadow: "0 6px 16px rgba(244, 67, 54, 0.4)",
+                              transform: "scale(1.05)",
+                            },
+                          }}
+                        >
+                          <DeleteForeverIcon sx={{ fontSize: "1.5rem" }} />
+                        </Button>
+                      </Box>
+                    </Paper>
+                  ))}
+                  <Paper
+                    elevation={8}
+                    sx={{
+                      p: 3,
+                      background:
+                        "linear-gradient(135deg, #388e3c 0%, #2e7d32 100%)",
+                      borderRadius: "16px",
+                      border: "3px solid #1b5e20",
+                      boxShadow:
+                        "0 12px 40px rgba(56, 142, 60, 0.3), 0 4px 16px rgba(0, 0, 0, 0.1)",
+                      color: "white",
+                      position: "relative",
+                      overflow: "hidden",
+                      "&::before": {
+                        content: '""',
+                        position: "absolute",
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        background:
+                          "linear-gradient(45deg, rgba(255,255,255,0.1) 0%, transparent 100%)",
+                        pointerEvents: "none",
+                      },
+                    }}
+                  >
+                    <Box sx={{ position: "relative", zIndex: 1 }}>
+                      <Typography
+                        variant="h5"
+                        sx={{
+                          fontWeight: "700",
+                          mb: 1,
+                          textAlign: "center",
+                          textShadow: "0 2px 4px rgba(0,0,0,0.3)",
+                        }}
+                      >
+                        🎫 Regular Packages Summary
+                      </Typography>
+
+                      <Box
+                        sx={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          flexWrap: "wrap",
+                          gap: 2,
+                        }}
+                      >
+                        <Box sx={{ textAlign: "center", flex: 1 }}>
+                          <Typography
+                            variant="h4"
+                            sx={{
+                              fontWeight: "800",
+                              textShadow: "0 2px 4px rgba(0,0,0,0.3)",
+                              color: "#ffeb3b",
+                            }}
+                          >
+                            ₹
+                            {selectedRegularPackages.reduce(
+                              (sum, item) => sum + (item.package?.price || 0),
+                              0
+                            )}
+                          </Typography>
+                          <Typography
+                            variant="body1"
+                            sx={{
+                              fontWeight: "600",
+                              opacity: 0.9,
+                            }}
+                          >
+                            Total Amount
+                          </Typography>
+                        </Box>
+
+                        <Box sx={{ textAlign: "center", flex: 1 }}>
+                          <Typography
+                            variant="h4"
+                            sx={{
+                              fontWeight: "800",
+                              textShadow: "0 2px 4px rgba(0,0,0,0.3)",
+                              color: "#ffeb3b",
+                            }}
+                          >
+                            {regularPeopleCount}
+                          </Typography>
+                          <Typography
+                            variant="body1"
+                            sx={{
+                              fontWeight: "600",
+                              opacity: 0.9,
+                            }}
+                          >
+                            Total Tickets
+                          </Typography>
+                        </Box>
+                      </Box>
+                    </Box>
+                  </Paper>
+                </Box>
+              )}
+            </Box>
+            {/* Unlimited Packages Section */}
+            <Divider sx={{ my: 3 }} />
+            <Box>
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  mb: 2,
+                }}
+              >
+                <Typography
+                  variant="h6"
+                  sx={{
+                    color: "#333",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 1,
+                  }}
+                >
+                  <AllInclusive color="primary" />
+                  Unlimited Packages (Today Available)
+                </Typography>
+
+                {getTodayUnlimitedPackages().length > 0 && (
+                  <Button
+                    variant={selectAllUnlimited ? "contained" : "outlined"}
+                    onClick={handleSelectAllUnlimited}
+                    sx={{
+                      borderRadius: "8px",
+                      textTransform: "none",
+                    }}
+                  >
+                    {selectAllUnlimited ? "Deselect All" : "Select All"}
+                  </Button>
+                )}
+              </Box>
+
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                Available unlimited packages for today:
+              </Typography>
+
+              {getTodayUnlimitedPackages().length === 0 ? (
+                <Paper
+                  sx={{
+                    p: 3,
+                    textAlign: "center",
+                    bgcolor: "#f5f5f5",
+                    borderRadius: "12px",
+                  }}
+                >
+                  <Typography color="text.secondary">
+                    No unlimited packages available for today
+                  </Typography>
+                </Paper>
+              ) : (
+                <Grid container spacing={2}>
+                  {getTodayUnlimitedPackages().map((pkg, index) => {
+                    const selectedItem = selectedUnlimitedPackages.find(
+                      (item) => item.package._id === pkg._id
+                    );
+                    const isSelected = !!selectedItem;
+
+                    return (
+                      <Grid item xs={12} key={index}>
+                        <Paper
+                          elevation={isSelected ? 4 : 1}
+                          sx={{
+                            p: 2,
+                            borderRadius: "12px",
+                            border: isSelected
+                              ? "2px solid #1976d2"
+                              : "1px solid #e0e0e0",
+                            cursor: "pointer",
+                            transition: "all 0.3s ease",
+                            "&:hover": {
+                              elevation: 3,
+                              transform: "translateY(-2px)",
+                            },
+                          }}
+                          onClick={() => handleSelectUnlimitedPackage(pkg)}
+                        >
+                          <Box
+                            sx={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              alignItems: "center",
+                            }}
+                          >
+                            <Box sx={{ flex: 1 }}>
+                              <Typography
+                                variant="h6"
+                                sx={{ fontWeight: "600", mb: 1 }}
+                              >
+                                {pkg.packageName}
+                              </Typography>
+                              <Typography
+                                variant="body2"
+                                color="text.secondary"
+                                sx={{ mb: 1 }}
+                              >
+                                ₹{pkg.totalCost} per person
+                              </Typography>
+                              <Typography variant="body2" color="primary">
+                                Activities: {getActivityDisplay(pkg.activities)}
+                              </Typography>
+                              <Typography
+                                variant="caption"
+                                color="text.secondary"
+                              >
+                                Available Days: {pkg.selectedDays?.join(", ")}
+                              </Typography>
+                            </Box>
+
+                            {/* People Count Controls - Show when this package is selected */}
+                            {isSelected && (
+                              <Box
+                                sx={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: 2,
+                                  ml: 2,
+                                  p: 1,
+                                  bgcolor: "#f8f9fa",
+                                  borderRadius: "8px",
+                                }}
+                              >
+                                <Button
+                                  variant="outlined"
+                                  size="small"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleUnlimitedPackageCountChange(
+                                      pkg._id,
+                                      "decrease"
+                                    );
+                                  }}
+                                  disabled={selectedItem.count <= 1}
+                                  sx={{
+                                    minWidth: "32px",
+                                    width: "32px",
+                                    height: "32px",
+                                    borderRadius: "50%",
+                                    p: 0,
+                                  }}
+                                >
+                                  <Remove fontSize="small" />
+                                </Button>
+
+                                <Typography
+                                  variant="h6"
+                                  sx={{
+                                    fontWeight: "bold",
+                                    minWidth: "40px",
+                                    textAlign: "center",
+                                    color: "#1976d2",
+                                  }}
+                                >
+                                  {selectedItem.count}
+                                </Typography>
+
+                                <Button
+                                  variant="outlined"
+                                  size="small"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleUnlimitedPackageCountChange(
+                                      pkg._id,
+                                      "increase"
+                                    );
+                                  }}
+                                  disabled={selectedItem.count >= 20}
+                                  sx={{
+                                    minWidth: "32px",
+                                    width: "32px",
+                                    height: "32px",
+                                    borderRadius: "50%",
+                                    p: 0,
+                                  }}
+                                >
+                                  <Add fontSize="small" />
+                                </Button>
+
+                                <Typography
+                                  variant="caption"
+                                  color="text.secondary"
+                                  sx={{ ml: 1 }}
+                                >
+                                  People
+                                </Typography>
+                              </Box>
+                            )}
+
+                            {isSelected && (
+                              <Chip
+                                label="Selected"
+                                color="primary"
+                                size="small"
+                                sx={{ ml: 1 }}
+                              />
+                            )}
+                          </Box>
+                        </Paper>
+                      </Grid>
+                    );
+                  })}
+                </Grid>
+              )}
+
+              {/* Selected Unlimited Packages Summary */}
+              {selectedUnlimitedPackages.length > 0 && (
+                <Box sx={{ mt: 3 }}>
+                  <Typography
+                    variant="subtitle1"
+                    sx={{
+                      mb: 3,
+                      fontWeight: "700",
+                      color: "#2c5aa0",
+                      fontSize: "1.1rem",
+                    }}
+                  >
+                    🎯 Selected Unlimited Packages
+                  </Typography>
+
+                  {selectedUnlimitedPackages.map((item, index) => (
+                    <Paper
+                      key={index}
+                      elevation={6}
+                      sx={{
+                        p: 3,
+                        mb: 3,
+                        borderRadius: "16px",
+                        border: "2px solid #e3f2fd",
+                        background:
+                          "linear-gradient(135deg, #ffffff 0%, #f8fbff 100%)",
+                        boxShadow:
+                          "0 8px 32px rgba(44, 90, 160, 0.12), 0 2px 8px rgba(0, 0, 0, 0.08)",
+                        transition: "all 0.3s ease",
+                        "&:hover": {
+                          boxShadow:
+                            "0 12px 40px rgba(44, 90, 160, 0.18), 0 4px 12px rgba(0, 0, 0, 0.12)",
+                          transform: "translateY(-2px)",
+                          border: "2px solid #bbdefb",
+                        },
+                      }}
+                    >
+                      <Box
+                        sx={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "flex-start",
+                          gap: 2,
+                        }}
+                      >
+                        <Box sx={{ flex: 1 }}>
+                          <Typography
+                            variant="h6"
+                            sx={{
+                              fontWeight: "700",
+                              color: "#1565c0",
+                              mb: 1,
+                              fontSize: "1.2rem",
+                            }}
+                          >
+                            {item.package.packageName}
+                          </Typography>
+
+                          <Box
+                            sx={{
+                              display: "flex",
+                              flexWrap: "wrap",
+                              gap: 1.5,
+                              mb: 2,
+                              alignItems: "center",
+                            }}
+                          >
+                            <Chip
+                              label={`₹${item.package.totalCost} per person`}
+                              sx={{
+                                bgcolor: "#e8f5e8",
+                                color: "#2e7d32",
+                                fontWeight: "600",
+                                border: "1px solid #c8e6c9",
+                              }}
+                            />
+                            <Chip
+                              label={`${item.count} people`}
+                              sx={{
+                                bgcolor: "#fff3e0",
+                                color: "#f57c00",
+                                fontWeight: "600",
+                                border: "1px solid #ffcc02",
+                              }}
+                            />
+                          </Box>
+
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              color: "#1976d2",
+                              mb: 2,
+                              fontWeight: "500",
+                              bgcolor: "#e3f2fd",
+                              p: 1,
+                              borderRadius: "8px",
+                              border: "1px solid #bbdefb",
+                            }}
+                          >
+                            🎮 Activities:{" "}
+                            {getActivityDisplay(item.package.activities)}
+                          </Typography>
+
+                          <Box
+                            sx={{
+                              bgcolor: "#e8f5e8",
+                              p: 2,
+                              borderRadius: "12px",
+                              border: "2px solid #c8e6c9",
+                              boxShadow: "0 2px 8px rgba(46, 125, 50, 0.1)",
+                            }}
+                          >
+                            <Typography
+                              variant="body1"
+                              sx={{
+                                color: "#2e7d32",
+                                fontWeight: "700",
+                                fontSize: "1.1rem",
+                                textAlign: "center",
+                              }}
+                            >
+                              💰 Subtotal: ₹
+                              {item.package.totalCost * item.count}
+                            </Typography>
+                          </Box>
+                        </Box>
+
+                        <Button
+                          variant="outlined"
+                          color="error"
+                          onClick={() =>
+                            handleSelectUnlimitedPackage(item.package)
+                          }
+                          sx={{
+                            borderRadius: "12px",
+                            p: 1.5,
+                            minWidth: "auto",
+                            border: "2px solid #f44336",
+                            boxShadow: "0 4px 12px rgba(244, 67, 54, 0.3)",
+                            "&:hover": {
+                              bgcolor: "#ffebee",
+                              border: "2px solid #d32f2f",
+                              boxShadow: "0 6px 16px rgba(244, 67, 54, 0.4)",
+                              transform: "scale(1.05)",
+                            },
+                          }}
+                        >
+                          <DeleteForeverIcon sx={{ fontSize: "1.5rem" }} />
+                        </Button>
+                      </Box>
+                    </Paper>
+                  ))}
+
+                  <Paper
+                    elevation={8}
+                    sx={{
+                      p: 3,
+                      background:
+                        "linear-gradient(135deg, #1976d2 0%, #1565c0 100%)",
+                      borderRadius: "16px",
+                      border: "3px solid #0d47a1",
+                      boxShadow:
+                        "0 12px 40px rgba(25, 118, 210, 0.3), 0 4px 16px rgba(0, 0, 0, 0.1)",
+                      color: "white",
+                      position: "relative",
+                      overflow: "hidden",
+                      "&::before": {
+                        content: '""',
+                        position: "absolute",
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        background:
+                          "linear-gradient(45deg, rgba(255,255,255,0.1) 0%, transparent 100%)",
+                        pointerEvents: "none",
+                      },
+                    }}
+                  >
+                    <Box sx={{ position: "relative", zIndex: 1 }}>
+                      <Typography
+                        variant="h5"
+                        sx={{
+                          fontWeight: "700",
+                          mb: 1,
+                          textAlign: "center",
+                          textShadow: "0 2px 4px rgba(0,0,0,0.3)",
+                        }}
+                      >
+                        🎯 Grand Total Summary
+                      </Typography>
+
+                      <Box
+                        sx={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          flexWrap: "wrap",
+                          gap: 2,
+                        }}
+                      >
+                        <Box sx={{ textAlign: "center", flex: 1 }}>
+                          <Typography
+                            variant="h4"
+                            sx={{
+                              fontWeight: "800",
+                              textShadow: "0 2px 4px rgba(0,0,0,0.3)",
+                              color: "#ffeb3b",
+                            }}
+                          >
+                            ₹
+                            {selectedUnlimitedPackages.reduce(
+                              (sum, item) =>
+                                sum + item.package.totalCost * item.count,
+                              0
+                            )}
+                          </Typography>
+                          <Typography
+                            variant="body1"
+                            sx={{
+                              fontWeight: "600",
+                              opacity: 0.9,
+                            }}
+                          >
+                            Total Amount
+                          </Typography>
+                        </Box>
+
+                        <Box sx={{ textAlign: "center", flex: 1 }}>
+                          <Typography
+                            variant="h4"
+                            sx={{
+                              fontWeight: "800",
+                              textShadow: "0 2px 4px rgba(0,0,0,0.3)",
+                              color: "#ffeb3b",
+                            }}
+                          >
+                            {selectedUnlimitedPackages.reduce(
+                              (sum, item) => sum + item.count,
+                              0
+                            )}
+                          </Typography>
+                          <Typography
+                            variant="body1"
+                            sx={{
+                              fontWeight: "600",
+                              opacity: 0.9,
+                            }}
+                          >
+                            Total People
+                          </Typography>
+                        </Box>
+                      </Box>
+                    </Box>
+                  </Paper>
+                </Box>
+              )}
+            </Box>
+          </CardContent>
+        </Card>
+
+        {/* Pricing & Discounts Card */}
+        <Card
+          elevation={3}
+          sx={{ mb: 4, borderRadius: "16px", overflow: "hidden" }}
+        >
+          <Box
+            sx={{
+              background: "linear-gradient(90deg, #4caf50 0%, #8bc34a 100%)",
+              p: 2,
+            }}
+          >
+            <Typography
+              variant="h6"
+              sx={{ color: "white", fontWeight: "bold" }}
+            >
+              Pricing & Discounts
+            </Typography>
+          </Box>
+          <CardContent sx={{ p: 3 }}>
+            <Grid container spacing={3}>
+              {/* Coupon Section */}
+              <Grid item xs={12} md={6}>
+                <Typography
+                  sx={{
+                    fontSize: "16px",
+                    fontWeight: "600",
+                    mb: 1,
+                    color: "#333",
+                  }}
+                >
+                  Coupon Code
+                </Typography>
+                <Box sx={{ display: "flex", gap: 1 }}>
+                  <TextField
+                    fullWidth
+                    value={code}
+                    onChange={(e) => setCode(e.target.value)}
+                    placeholder="Enter coupon code"
+                    sx={{
+                      "& .MuiOutlinedInput-root": {
+                        borderRadius: "12px",
+                      },
+                    }}
+                  />
+                  <Button
+                    variant="contained"
+                    onClick={getDiscountUsingCoupon}
+                    disabled={!code || totalPrice === 0}
+                    sx={{
+                      borderRadius: "12px",
+                      px: 3,
+                    }}
+                  >
+                    Apply
+                  </Button>
+                </Box>
+                {couponDiscount.message && (
+                  <Typography
+                    color="success.main"
+                    sx={{ mt: 1, fontSize: "14px" }}
+                  >
+                    {couponDiscount.message}
+                  </Typography>
+                )}
+              </Grid>
+
+              {/* Custom Discount */}
+              <Grid item xs={12} md={6}>
+                <Typography
+                  sx={{
+                    fontSize: "16px",
+                    fontWeight: "600",
+                    mb: 1,
+                    color: "#333",
+                  }}
+                >
+                  Custom Discount
+                </Typography>
+                <TextField
+                  fullWidth
+                  type="number"
+                  value={customDiscount}
+                  onChange={handleCustomDiscountChange}
+                  placeholder="Enter custom discount amount"
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">₹</InputAdornment>
+                    ),
+                  }}
+                  sx={{
+                    "& .MuiOutlinedInput-root": {
+                      borderRadius: "12px",
+                    },
+                  }}
+                />
+              </Grid>
+            </Grid>
+
+            {/* Price Summary */}
+            <Paper
+              elevation={1}
+              sx={{
+                mt: 3,
+                p: 3,
+                bgcolor: "#f8f9fa",
+                borderRadius: "12px",
+              }}
+            >
+              <Typography variant="h6" sx={{ mb: 2, fontWeight: "600" }}>
+                Price Summary
+              </Typography>
+              <Box
+                sx={{ display: "flex", justifyContent: "space-between", mb: 1 }}
+              >
+                <Typography>Subtotal:</Typography>
+                <Typography>₹{totalPrice}</Typography>
+              </Box>
+              {isPremium && (
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    mb: 1,
+                  }}
+                >
+                  <Typography color="warning.main">
+                    Premium Discount (50%):
+                  </Typography>
+                  <Typography color="warning.main">
+                    -₹{premiumDiscount}
+                  </Typography>
+                </Box>
+              )}
+              {couponDiscount.discount > 0 && (
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    mb: 1,
+                  }}
+                >
+                  <Typography color="success.main">Coupon Discount:</Typography>
+                  <Typography color="success.main">
+                    -₹{couponDiscount.discount}
+                  </Typography>
+                </Box>
+              )}
+              {customDiscount > 0 && (
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    mb: 1,
+                  }}
+                >
+                  <Typography color="info.main">Custom Discount:</Typography>
+                  <Typography color="info.main">-₹{customDiscount}</Typography>
+                </Box>
+              )}
+              <Divider sx={{ my: 2 }} />
+              <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+                <Typography variant="h6" sx={{ fontWeight: "bold" }}>
+                  Final Total:
+                </Typography>
+                <Typography
+                  variant="h6"
+                  sx={{ fontWeight: "bold", color: "primary.main" }}
+                >
+                  ₹
+                  {Math.max(
+                    0,
+                    totalPrice -
+                      premiumDiscount -
+                      (couponDiscount.discount || 0) -
+                      customDiscount
+                  )}
+                </Typography>
+              </Box>
+              <Box
+                sx={{ display: "flex", justifyContent: "space-between", mt: 1 }}
+              >
+                <Typography variant="body2" color="text.secondary">
+                  Total People:
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {personCount}
+                </Typography>
+              </Box>
+            </Paper>
+          </CardContent>
+        </Card>
+
+        {/* Payment Information Card */}
+        <Card
+          elevation={3}
+          sx={{ mb: 4, borderRadius: "16px", overflow: "hidden" }}
+        >
+          <Box
+            sx={{
+              background: "linear-gradient(90deg, #9c27b0 0%, #e91e63 100%)",
+              p: 2,
+            }}
+          >
+            <Typography
+              variant="h6"
+              sx={{ color: "white", fontWeight: "bold" }}
+            >
+              Payment Information
+            </Typography>
+          </Box>
+          <CardContent sx={{ p: 3 }}>
+            <Grid container spacing={3}>
+              <Grid item xs={12} md={6}>
+                <Typography
+                  sx={{
+                    fontSize: "16px",
+                    fontWeight: "600",
+                    mb: 1,
+                    color: "#333",
+                  }}
+                >
+                  Payment Mode
+                </Typography>
+                <ReactSelect
+                  options={paymentModes}
+                  value={paymentMode}
+                  onChange={handlePaymentModeChange}
+                  placeholder="Select payment mode..."
+                  styles={selectStyles}
+                  menuPortalTarget={document.body}
+                />
+              </Grid>
+
+              {showExtraField && (
+                <>
+                  <Grid item xs={12} md={3}>
+                    <Typography
+                      sx={{
+                        fontSize: "16px",
+                        fontWeight: "600",
+                        mb: 1,
+                        color: "#333",
+                      }}
+                    >
+                      Cash Amount
+                    </Typography>
+                    <TextField
+                      fullWidth
+                      type="number"
+                      value={cashAmount || ""}
+                      onChange={handleCashAmountChange}
+                      placeholder="Enter cash amount"
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">₹</InputAdornment>
+                        ),
+                      }}
+                      sx={{
+                        "& .MuiOutlinedInput-root": {
+                          borderRadius: "12px",
+                        },
+                      }}
+                    />
+                  </Grid>
+                  <Grid item xs={12} md={3}>
+                    <Typography
+                      sx={{
+                        fontSize: "16px",
+                        fontWeight: "600",
+                        mb: 1,
+                        color: "#333",
+                      }}
+                    >
+                      Online Amount
+                    </Typography>
+                    <TextField
+                      fullWidth
+                      type="number"
+                      value={onlineAmount || ""}
+                      onChange={handleOnlineAmountChange}
+                      placeholder="Enter online amount"
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">₹</InputAdornment>
+                        ),
+                      }}
+                      sx={{
+                        "& .MuiOutlinedInput-root": {
+                          borderRadius: "12px",
+                        },
+                      }}
+                    />
+                  </Grid>
+                </>
+              )}
+            </Grid>
+          </CardContent>
+        </Card>
+
+        {/* Action Buttons */}
+        <Box sx={{ display: "flex", gap: 2, justifyContent: "center", mb: 4 }}>
+          <Button
+            variant="contained"
+            size="large"
+            onClick={handlePurchase}
+            disabled={!isFormValid() || isLoading}
+            sx={{
+              px: 4,
+              py: 1.5,
+              borderRadius: "12px",
+              background: "linear-gradient(45deg, #4caf50, #45a049)",
+              boxShadow: "0 4px 12px rgba(76, 175, 80, 0.4)",
+              "&:hover": {
+                background: "linear-gradient(45deg, #45a049, #3d8b40)",
+                boxShadow: "0 6px 16px rgba(76, 175, 80, 0.6)",
+              },
+              "&:disabled": {
+                background: "#e0e0e0",
+                boxShadow: "none",
+              },
+            }}
+          >
+            <Group sx={{ mr: 1 }} />
+            Book Tickets
+          </Button>
+
+          <Button
+            variant="outlined"
+            size="large"
+            onClick={resetForm}
+            sx={{
+              px: 4,
+              py: 1.5,
+              borderRadius: "12px",
+              borderColor: "#f44336",
+              color: "#f44336",
+              "&:hover": {
+                borderColor: "#d32f2f",
+                backgroundColor: "rgba(244, 67, 54, 0.04)",
+              },
+            }}
+          >
+            Reset Form
+          </Button>
+
+          {userType === "admin" && (
+            <Button
+              variant="outlined"
+              size="large"
+              onClick={() => setComplementaryCoinsModalOpen(true)}
+              sx={{
+                px: 4,
+                py: 1.5,
+                borderRadius: "12px",
+                borderColor: "#ff9800",
+                color: "#ff9800",
+                "&:hover": {
+                  borderColor: "#f57c00",
+                  backgroundColor: "rgba(255, 152, 0, 0.04)",
+                },
+              }}
+            >
+              <Coin sx={{ mr: 1 }} />
+              Add Complimentary Coins
+            </Button>
           )}
-        </Grid>
-      </Grid>
-      {invoiceData && <Invoice invoiceData={invoiceData} />}
-    </Grid>
+        </Box>
+
+        {/* Error Display */}
+        {error && (
+          <Paper
+            elevation={1}
+            sx={{
+              p: 2,
+              mb: 4,
+              bgcolor: "#ffebee",
+              borderRadius: "12px",
+              border: "1px solid #f44336",
+            }}
+          >
+            <Typography color="error" sx={{ textAlign: "center" }}>
+              {error}
+            </Typography>
+          </Paper>
+        )}
+      </Box>
+
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        open={confirmationModalOpen}
+        onClose={() => setConfirmationModalOpen(false)}
+        onConfirm={(callback) => {
+          setConfirmationModalOpen(false);
+          handlePurchase(callback);
+        }}
+        data={{
+          regularPackages: selectedRegularPackages,
+          unlimitedPackage: selectedUnlimitedPackages,
+          regularPeopleCount,
+          unlimitedPeopleCount,
+          totalPrice,
+          premiumDiscount,
+          couponDiscount: couponDiscount.discount || 0,
+          customDiscount,
+          finalTotal: Math.max(
+            0,
+            totalPrice -
+              premiumDiscount -
+              (couponDiscount.discount || 0) -
+              customDiscount
+          ),
+          phoneNumber,
+          name,
+          paymentMode: paymentMode?.label,
+          cashAmount: showExtraField ? cashAmount : 0,
+          onlineAmount: showExtraField ? onlineAmount : 0,
+        }}
+      />
+
+      {/* Complimentary Coins Modal */}
+      <ComplimentaryDialog
+        open={complementaryCoinsModalOpen}
+        onClose={() => setComplementaryCoinsModalOpen(false)}
+      />
+
+      {/* Invoice Component */}
+      {shortId && (
+        // <Invoice shortId={shortId} onClose={() => setShortId(null)} />
+        <span></span>
+      )}
+    </Box>
   );
 };
 

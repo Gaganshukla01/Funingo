@@ -11,6 +11,7 @@ import Transaction from "../../models/transaction.js";
 import { error } from "console";
 
 export const bookTicket = async (req, res) => {
+  
   let {
     details,
     total_amount,
@@ -58,6 +59,7 @@ export const bookTicket = async (req, res) => {
 
   let total_coins = 0;
   let hasUnlimitedPackage = false;
+  let regularPackageProcessed = false; // Flag to track if regular package is already processed
 
   const newDetails = await Promise.all(
     details.map(async (person) => {
@@ -72,14 +74,16 @@ export const bookTicket = async (req, res) => {
         total_coins += 0;
 
         console.log("Added unlimited package price:", unlimitedPrice);
-      } else if (person.package) {
+      } else if (person.package && !regularPackageProcessed) {
+        // Only process regular package once
         console.log("Processing regular package:", person.package);
 
         const pack = await Package.findById(person.package);
         if (pack) {
-          totalAmount += pack.price;
-          total_coins += pack.coins;
-          console.log("Added regular package price:", pack.price);
+          totalAmount += pack.price; // Add price only once
+          total_coins += pack.coins; // Add coins only once
+          regularPackageProcessed = true; // Mark as processed
+          console.log("Added regular package price (once):", pack.price);
         }
       }
 
